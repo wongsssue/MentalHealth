@@ -1,6 +1,8 @@
 package com.example.mentalhealthemotion.ui.theme
 
+import android.util.Log
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -8,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Divider
+import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -46,6 +49,7 @@ import com.github.mikephil.charting.data.Entry
 @Composable
 fun StatisticPage(
     onNavigate: (String) -> Unit,
+    toEntryPage: () -> Unit,
     moodEntryViewModel: MoodEntryViewModel,
     userViewModel: UserViewModel
 ) {
@@ -53,6 +57,8 @@ fun StatisticPage(
     val user by userViewModel.currentUser.observeAsState()
     val scrollState = rememberScrollState()
     val barEntries by moodEntryViewModel.moodActivityChartData.collectAsState()
+
+
     val labels by moodEntryViewModel.moodActivityLabels.collectAsState()
     val weeklyBarEntries by moodEntryViewModel.weeklyMoodChartData.collectAsState()
     val weeklyLabels by moodEntryViewModel.weeklyMoodLabels.collectAsState()
@@ -84,16 +90,27 @@ fun StatisticPage(
             Spacer(modifier = Modifier.height(20.dp))
 
             // Mood Chart Title
-            Text(
-                text = "Mood Statistics",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF2E3E64)
-            )
+            Row{
+                Icon(
+                    painter = painterResource(R.drawable.back),
+                    contentDescription = "Back",
+                    tint = Color(0xFF2E3E64),
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clickable { toEntryPage()  }
+                )
+                Spacer(modifier = Modifier.width(35.dp))
+                Text(
+                    text = "Mood Statistics",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF2E3E64)
+                )
+            }
+
             Spacer(modifier = Modifier.height(20.dp))
 
             // Placeholder for Chart
-            val daysOfWeek = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 
             // Check if all mood types have zero Y-axis values for all days in the week
             val isWeeklyChartEmpty = weeklyBarEntries.isEmpty() || weeklyBarEntries.all { (_, entries) ->
@@ -389,6 +406,7 @@ fun BarChartView(entries: List<BarEntry>, labels: List<String>, chartColor: Colo
                 axisLeft.granularity = 1f  // Ensure Y-axis increments by 1
                 axisLeft.isGranularityEnabled = true
                 axisLeft.axisMinimum = 0f  // Start from 0
+                axisLeft.axisMaximum = entries.maxOf { it.y } + 1f
 
                 axisRight.isEnabled = false
                 legend.isEnabled = false
@@ -421,6 +439,7 @@ fun LineChartView(entries: List<Entry>, labels: List<String>, chartColor: Color)
                 axisLeft.granularity = 1f  // Ensure Y-axis increments by 1
                 axisLeft.isGranularityEnabled = true
                 axisLeft.axisMinimum = 0f  // Start from 0
+                axisLeft.axisMaximum = entries.maxOf { it.y } + 1f
 
                 axisRight.isEnabled = false
                 legend.isEnabled = false

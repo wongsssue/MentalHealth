@@ -63,8 +63,6 @@ enum class MentalHeathAppScreen {
 
 @Composable
 fun AppBar(
-    canNavigateBack: Boolean,
-    navigateUp: () -> Unit,
     onMenuClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -75,16 +73,6 @@ fun AppBar(
             .statusBarsPadding()
             .padding(horizontal = 16.dp)
     ) {
-        // Back button
-        if (canNavigateBack) {
-            IconButton(onClick = navigateUp) {
-                Icon(
-                    painter = painterResource(R.drawable.back),
-                    contentDescription = "Back",
-                    modifier = Modifier.size(35.dp)
-                )
-            }
-        }
         Spacer(modifier = Modifier.weight(1f))
         // Menu Icon
         IconButton(onClick = onMenuClick) {
@@ -104,9 +92,6 @@ fun MentalHeathApp(
 ) {
     val spotifyService = SpotifyService()
     val eduService = EduService()
-
-    // Initialize coroutine scope
-    val coroutineScope = rememberCoroutineScope()
 
     // Initialize the database and repository
     val appDatabase = remember { AppDatabase.getDatabase(context) }
@@ -147,8 +132,6 @@ fun MentalHeathApp(
         topBar = {
             if (currentRoute in showAppBarScreens) {
                 AppBar(
-                    canNavigateBack = currentRoute != MentalHeathAppScreen.HomePage.name && navController.previousBackStackEntry != null,
-                    navigateUp = { navController.navigateUp() },
                     onMenuClick = { navController.navigate(MentalHeathAppScreen.Menu.name) }
                 )
             }
@@ -264,6 +247,7 @@ fun MentalHeathApp(
                 StatisticPage(
                     moodEntryViewModel = moodViewModel,
                     userViewModel = userViewModel,
+                    toEntryPage = {navController.navigate(MentalHeathAppScreen.MoodTrackerPage.name) },
                     onNavigate = { route -> navController.navigate(route) }
                 )
             }
@@ -272,14 +256,15 @@ fun MentalHeathApp(
             composable(route = MentalHeathAppScreen.MusicStartPage.name) {
                 MusicStartPage(
                     onNavigate = { route -> navController.navigate(route) },
-                    musicSuggestions = { navController.navigate((MentalHeathAppScreen.MusicPage.name))}
+                    musicSuggestions = { navController.navigate(MentalHeathAppScreen.MusicPage.name)}
                 )
             }
 
             // Music Page
             composable(route = MentalHeathAppScreen.MusicPage.name) {
                 MusicPage(
-                    onNavigate = { route -> navController.navigate(route) }
+                    onNavigate = { route -> navController.navigate(route) },
+                    toMusicStartPage = {navController.navigate(MentalHeathAppScreen.MusicStartPage.name)}
                 )
             }
 

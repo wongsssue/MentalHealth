@@ -24,7 +24,10 @@ import androidx.compose.ui.unit.sp
 import com.example.mentalhealthemotion.R
 
 @Composable
-fun MusicPage(onNavigate: (String) -> Unit) {
+fun MusicPage(
+    onNavigate: (String) -> Unit,
+    toMusicStartPage: () -> Unit
+) {
     var playlist by remember {
         mutableStateOf(
             listOf(
@@ -43,13 +46,24 @@ fun MusicPage(onNavigate: (String) -> Unit) {
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Music Suggested for You",
-                fontSize = 30.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF2E3E64),
-                modifier = Modifier.padding(bottom = 30.dp)
-            )
+            Row{
+                Icon(
+                    painter = painterResource(R.drawable.back),
+                    contentDescription = "Back",
+                    tint = Color(0xFF2E3E64),
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clickable { toMusicStartPage()  }
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(
+                    text = "Music Suggested for You",
+                    fontSize = 25.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF2E3E64),
+                    modifier = Modifier.padding(bottom = 30.dp)
+                )
+            }
 
             // Filter Bar
             Row(
@@ -192,8 +206,3 @@ fun MusicCard(
     Spacer(modifier = Modifier.height(10.dp))
 }
 
-@Preview(showBackground = true)
-@Composable
-fun PreviewMusicPage() {
-    MusicPage(onNavigate = {})
-}

@@ -102,9 +102,14 @@ class MoodEntryViewModel(private val repository: MoodEntryRepository) : ViewMode
     fun loadMoodEntries(userId: Int) {
         viewModelScope.launch {
             val entries = repository.loadMoodEntries(userId)
-            _moodEntries.postValue(entries)
+            val sortedEntries = entries.sortedByDescending { entry ->
+                dateFormat.parse(entry.date)?.time ?: 0L
+            }
+            _moodEntries.postValue(sortedEntries)
         }
     }
+
+    private val dateFormat = SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.getDefault())
 
     fun generateUniqueFourDigitId(): Int {
         val uuid = UUID.randomUUID().toString()
@@ -418,6 +423,8 @@ class MoodEntryViewModel(private val repository: MoodEntryRepository) : ViewMode
                         BarEntry(index.toFloat(), countForDay.toFloat()) // X = weekday index, Y = count
                     }
                 }
+                Log.d("ViewModel", "Received Mood Data: $moodDataMap")
+
 
                 _weeklyMoodChartData.value = moodEntriesMap
                 _weeklyMoodLabels.value = weekDays // X-axis should display day names

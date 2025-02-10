@@ -256,13 +256,13 @@ class MoodEntryRepository(
                         moodEntry.date?.let { dateStr ->
                             try {
                                 val formatter = SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.getDefault())
-                                val parsedDate = formatter.parse(dateStr) // Convert to Date object
 
-                                val startFormatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                                val startDateParsed = startFormatter.parse(startDate)
-                                val endDateParsed = startFormatter.parse(endDate)
+                                val parsedDate = formatter.parse(dateStr) ?: return@filter false
+                                val startDateParsed = formatter.parse("$startDate 00:00:00")
+                                val endDateParsed = formatter.parse("$endDate 23:59:59")
 
-                                parsedDate != null && parsedDate in startDateParsed..endDateParsed
+                                parsedDate in startDateParsed..endDateParsed
+
                             } catch (e: Exception) {
                                 false // If parsing fails, exclude this entry
                             }
