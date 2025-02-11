@@ -3,6 +3,7 @@ package com.example.mentalhealthemotion.Data
 import android.content.Context
 import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
@@ -12,8 +13,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
@@ -116,6 +115,7 @@ class MoodEntryRepository(
             emptyList()
         }
     }
+
 
     // Function to count moods for the current month
     suspend fun countMoodsForCurrentMonth(userId: Int): List<MoodCount> {

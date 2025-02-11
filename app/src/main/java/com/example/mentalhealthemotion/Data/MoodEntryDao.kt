@@ -50,4 +50,6 @@ interface MoodEntryDao {
 """)
     fun countMoodsByWeek(userId: Int, startDate: String, endDate: String): Flow<List<MoodCountByDay>>
 
+    @Query("SELECT * FROM moodEntry WHERE userID = :userId ORDER BY date DESC LIMIT 1")
+    suspend fun getLatestMoodEntry(userId: Int): MoodEntry?
 }

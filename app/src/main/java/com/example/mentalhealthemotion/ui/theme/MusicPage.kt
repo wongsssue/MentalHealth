@@ -6,38 +6,51 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.*
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.mentalhealthemotion.Data.MusicViewModel
+import com.example.mentalhealthemotion.Data.UserViewModel
 import com.example.mentalhealthemotion.R
 
 @Composable
 fun MusicPage(
     onNavigate: (String) -> Unit,
-    toMusicStartPage: () -> Unit
+    toMusicStartPage: () -> Unit,
+    musicViewModel: MusicViewModel,
+    userViewModel: UserViewModel
 ) {
-    var playlist by remember {
-        mutableStateOf(
-            listOf(
-                "Daily Calm 3" to false,
-                "Daily Calm 1" to false,
-                "Daily Calm 2" to false
-            )
-        )
-    }
+    val user by userViewModel.currentUser.observeAsState()
+    val latestMood by musicViewModel.moodEntry.observeAsState()
     var isSortedAlphabetically by remember { mutableStateOf(false) }
+    val songs by musicViewModel.songs.collectAsState()
+    val context = LocalContext.current
+
+    LaunchedEffect(user?.userID) {
+        user?.userID?.let { userId ->
+            musicViewModel.getLatestMoodEntry(userId)
+        }
+    }
+
+    LaunchedEffect(latestMood) {
+        latestMood?.let { moodEntry ->
+            musicViewModel.loadSongsForMood(moodEntry.moodType)
+        }
+    }
+
 
     Box() {
         Column(
@@ -53,7 +66,7 @@ fun MusicPage(
                     tint = Color(0xFF2E3E64),
                     modifier = Modifier
                         .size(28.dp)
-                        .clickable { toMusicStartPage()  }
+                        .clickable { toMusicStartPage() }
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 Text(
@@ -75,11 +88,7 @@ fun MusicPage(
                 Button(
                     onClick = {
                         isSortedAlphabetically = !isSortedAlphabetically
-                        playlist = if (isSortedAlphabetically) {
-                            playlist.sortedBy { it.first }
-                        } else {
-                            playlist.shuffled() // Example: Revert to unsorted (mock)
-                        }
+                        musicViewModel.sortSongs(isSortedAlphabetically)
                     },
                     colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
                     shape = RoundedCornerShape(20.dp),
@@ -113,22 +122,20 @@ fun MusicPage(
 
             // Playlist
             LazyColumn {
-                items(playlist) { track ->
+                itemsIndexed(songs) { index, track ->
                     MusicCard(
-                        trackName = track.first,
-                        isPlaying = track.second,
+                        trackName = track.title,
+                        isPlaying = track.isPlaying,
+                        authorName = track.authorName,
+                        duration = musicViewModel.formatDuration(track.durationInSeconds),
                         onTogglePlay = {
-                            playlist = playlist.map {
-                                if (it.first == track.first) {
-                                    it.first to !it.second
-                                } else {
-                                    it.first to false // Stop all other tracks
-                                }
-                            }
-                        }
+                            musicViewModel.togglePlay(context, track)
+                        },
+                        modifier = Modifier.padding(bottom = if (index == songs.lastIndex) 90.dp else 10.dp)
                     )
                 }
             }
+
         }
 
         // Bottom Navigation Bar
@@ -143,10 +150,13 @@ fun MusicPage(
 fun MusicCard(
     trackName: String,
     isPlaying: Boolean,
-    onTogglePlay: () -> Unit
+    authorName: String,
+    duration: String,
+    onTogglePlay: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
         shape = RoundedCornerShape(8.dp),
@@ -166,9 +176,9 @@ fun MusicCard(
             ) {
                 Icon(
                     painter = if (isPlaying) {
-                        painterResource(id = R.drawable.pause) // Replace with your drawable resource for pause
+                        painterResource(id = R.drawable.pause)
                     } else {
-                        painterResource(id = R.drawable.play) // Replace with your drawable resource for play
+                        painterResource(id = R.drawable.play)
                     },
                     modifier = Modifier
                         .size(40.dp)
@@ -188,14 +198,14 @@ fun MusicCard(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Author Name",
+                    text = "Author: $authorName",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = Color.Gray
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Duration: 3:30",
+                    text = "Duration: $duration",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = Color.Gray

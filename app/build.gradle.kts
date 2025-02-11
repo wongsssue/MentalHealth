@@ -122,4 +122,8 @@ dependencies {
     //Chart
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
 
+    //YouTube Android Player API for Video Playback
+    implementation ("com.squareup.okhttp3:okhttp:4.9.3") // HTTP Client for API requests
+    implementation ("com.pierfrancescosoffritti.androidyoutubeplayer:core:12.1.0")
+
 }

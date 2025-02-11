@@ -13,7 +13,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -23,7 +22,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.mentalhealthemotion.API.EduService
-import com.example.mentalhealthemotion.API.SpotifyService
 import com.example.mentalhealthemotion.Data.AppDatabase
 import com.example.mentalhealthemotion.R
 import android.content.Context
@@ -34,6 +32,9 @@ import androidx.navigation.navArgument
 import com.example.mentalhealthemotion.Data.MoodEntryRepository
 import com.example.mentalhealthemotion.Data.MoodEntryViewModel
 import com.example.mentalhealthemotion.Data.MoodEntryViewModelFactory
+import com.example.mentalhealthemotion.Data.MusicRepository
+import com.example.mentalhealthemotion.Data.MusicViewModel
+import com.example.mentalhealthemotion.Data.MusicViewModelFactory
 import com.example.mentalhealthemotion.Data.UserRepository
 import com.example.mentalhealthemotion.Data.UserViewModel
 import com.example.mentalhealthemotion.Data.UserViewModelFactory
@@ -90,21 +91,23 @@ fun MentalHeathApp(
     navController: NavHostController = rememberNavController(),
     context: Context = LocalContext.current
 ) {
-    val spotifyService = SpotifyService()
     val eduService = EduService()
 
     // Initialize the database and repository
     val appDatabase = remember { AppDatabase.getDatabase(context) }
     val userRepository = remember { UserRepository(appDatabase.userDao,context) }
     val moodEntryRepository = remember { MoodEntryRepository(appDatabase.moodEntryDao,context)}
+    val musicRepository = remember { MusicRepository(appDatabase.moodEntryDao,context)}
 
     // Create ViewModelFactory instances
     val userViewModelFactory = remember { UserViewModelFactory(userRepository) }
     val moodEntryViewModelFactory = remember { MoodEntryViewModelFactory(moodEntryRepository) }
+    val musicViewModelFactory = remember { MusicViewModelFactory(musicRepository) }
 
     // Get ViewModel instances using the factory
     val userViewModel: UserViewModel = viewModel(factory = userViewModelFactory)
     val moodViewModel: MoodEntryViewModel = viewModel(factory = moodEntryViewModelFactory)
+    val musicViewModel: MusicViewModel = viewModel(factory = musicViewModelFactory)
 
     //Initialize admin
     userViewModel.initializeAdmin()
@@ -264,7 +267,9 @@ fun MentalHeathApp(
             composable(route = MentalHeathAppScreen.MusicPage.name) {
                 MusicPage(
                     onNavigate = { route -> navController.navigate(route) },
-                    toMusicStartPage = {navController.navigate(MentalHeathAppScreen.MusicStartPage.name)}
+                    toMusicStartPage = {navController.navigate(MentalHeathAppScreen.MusicStartPage.name)},
+                    musicViewModel = musicViewModel,
+                    userViewModel = userViewModel
                 )
             }
 
@@ -314,12 +319,6 @@ fun MentalHeathApp(
         }
     }
 }
-
-/*  // Replace "happy" and "your_access_token" with real values
-                MusicPage(spotifyService, mood = "happy", accessToken = "your_access_token")
-                // Uncomment below to load the Educational Library Page
-                // EducationalLibraryPage(eduService)*/
-
 
 //@Composable
 //fun SleepQualityApp() {
