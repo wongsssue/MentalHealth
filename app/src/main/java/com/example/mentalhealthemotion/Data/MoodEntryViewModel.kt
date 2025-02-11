@@ -26,6 +26,7 @@ import java.util.UUID
 import com.github.mikephil.charting.data.BarEntry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import java.util.Calendar
 
 
 class MoodEntryViewModel(private val repository: MoodEntryRepository) : ViewModel() {
@@ -413,24 +414,37 @@ class MoodEntryViewModel(private val repository: MoodEntryRepository) : ViewMode
             repository.getMoodsForCurrentWeek(userId).collect { moodDataMap ->
                 val weekDays = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 
-                // Mapping mood data to display mood counts per day
                 val moodEntriesMap = MoodType.values().associateWith { moodType ->
                     weekDays.mapIndexed { index, day ->
-                        // Get the list of MoodCount for this MoodType
                         val moodCountsForMood = moodDataMap[moodType] ?: emptyList()
-                        val countForDay = moodCountsForMood.getOrNull(index)?.count ?: 0  // Match index to weekday
+
+                        val countForDay = moodCountsForMood.find { convertDayToWeekday(it.day) == day }?.mood_count ?: 0
+                        Log.d("MoodMapping", "MoodType: $moodType, Day: $day, Count: $countForDay")
 
                         BarEntry(index.toFloat(), countForDay.toFloat()) // X = weekday index, Y = count
                     }
                 }
-                Log.d("ViewModel", "Received Mood Data: $moodDataMap")
-
-
                 _weeklyMoodChartData.value = moodEntriesMap
-                _weeklyMoodLabels.value = weekDays // X-axis should display day names
+                _weeklyMoodLabels.value = weekDays
             }
         }
     }
 
+    fun convertDayToWeekday(day: String): String {
+        val calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Kuala_Lumpur"))
+        val currentYear = calendar.get(Calendar.YEAR)
+        val currentMonth = calendar.get(Calendar.MONTH)
+
+        try {
+            val dayInt = day.toInt()
+            calendar.set(currentYear, currentMonth, dayInt)
+            // Convert to weekday name
+            val dateFormat = SimpleDateFormat("EEEE", Locale.getDefault())
+            return dateFormat.format(calendar.time)
+        } catch (e: Exception) {
+            Log.e("DateConversion", "Invalid day: $day", e)
+            return "Unknown"
+        }
+    }
 
 }

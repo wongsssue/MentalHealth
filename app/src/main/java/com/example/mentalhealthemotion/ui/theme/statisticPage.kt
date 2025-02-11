@@ -1,6 +1,5 @@
 package com.example.mentalhealthemotion.ui.theme
 
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -57,8 +56,6 @@ fun StatisticPage(
     val user by userViewModel.currentUser.observeAsState()
     val scrollState = rememberScrollState()
     val barEntries by moodEntryViewModel.moodActivityChartData.collectAsState()
-
-
     val labels by moodEntryViewModel.moodActivityLabels.collectAsState()
     val weeklyBarEntries by moodEntryViewModel.weeklyMoodChartData.collectAsState()
     val weeklyLabels by moodEntryViewModel.weeklyMoodLabels.collectAsState()

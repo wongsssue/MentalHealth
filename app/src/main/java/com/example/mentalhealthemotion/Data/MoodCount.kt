@@ -9,6 +9,6 @@ data class MoodCount(
 
 data class MoodCountByDay(
     val day: String,         // "01", "02", etc.
-    val moodType: String,    // "Good", "Bad", etc.
-    val mood_count: Int      // Count of that mood type
+    val moodType: MoodType,
+    val mood_count: Int
 )

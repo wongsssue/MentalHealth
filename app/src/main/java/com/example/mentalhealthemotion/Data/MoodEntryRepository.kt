@@ -3,7 +3,6 @@ package com.example.mentalhealthemotion.Data
 import android.content.Context
 import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
@@ -239,8 +238,9 @@ class MoodEntryRepository(
         return startOfWeek to endOfWeek
     }
 
-    fun getMoodsForCurrentWeek(userId: Int): Flow<Map<MoodType, List<MoodCount>>> = flow {
+    fun getMoodsForCurrentWeek(userId: Int): Flow<Map<MoodType, List<MoodCountByDay>>> = flow {
         val (startDate, endDate) = getCurrentWeekDateRange() // Get Monday-Sunday range
+
         try {
             if (isOnline()) {
                 val snapshot = moodEntriesCollection
@@ -250,34 +250,34 @@ class MoodEntryRepository(
                     .await()
 
                 // Extract data from Firestore and filter by date
+                val formatter = SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.getDefault())
+                val dayFormatter = SimpleDateFormat("dd", Locale.getDefault()) // Extracts day as "01", "02", etc.
+
                 val filteredMoods = snapshot.documents
                     .mapNotNull { it.toObject(MoodEntry::class.java) }
                     .filter { moodEntry ->
                         moodEntry.date?.let { dateStr ->
                             try {
-                                val formatter = SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.getDefault())
-
                                 val parsedDate = formatter.parse(dateStr) ?: return@filter false
                                 val startDateParsed = formatter.parse("$startDate 00:00:00")
-                                val endDateParsed = formatter.parse("$endDate 23:59:59")
+                                val endDateParsed = formatter.parse("$endDate 23:59:59.999")
 
                                 parsedDate in startDateParsed..endDateParsed
-
                             } catch (e: Exception) {
                                 false // If parsing fails, exclude this entry
                             }
                         } ?: false // If date is null, exclude it
                     }
-                    // Ensure date filtering
-                    .groupingBy { moodEntry ->
-                        MoodType.values().find { it == moodEntry.moodType } ?: MoodType.meh
+                    .groupBy { moodEntry ->
+                        moodEntry.date?.let { dateStr -> dayFormatter.format(formatter.parse(dateStr)!!) } ?: "Unknown"
                     }
-                    .eachCount()
 
-                // Convert to required format
-                val firestoreData = filteredMoods.mapValues { (moodType, count) ->
-                    listOf(MoodCount(moodType.name, count))
-                }
+                val firestoreData = filteredMoods.flatMap { (day, moods) ->
+                    moods.groupingBy { it.moodType }.eachCount().map { (moodType, count) ->
+                        MoodCountByDay(day, moodType ?: MoodType.meh, count)
+                    }
+                }.groupBy { it.moodType } // Ensure the grouping is by MoodType
+
                 Log.d("MoodEntryRepository", "Fetched weekly mood counts from Firestore.")
                 emit(firestoreData)
                 return@flow
@@ -292,13 +292,14 @@ class MoodEntryRepository(
         val weeklyCounts = moodEntryDao.countMoodsByWeek(userId, startDate, endDate)
             .map { moodList ->
                 moodList.groupBy { moodEntry ->
-                    MoodType.values().find { it.name == moodEntry.moodType } ?: MoodType.meh
+                    moodEntry.moodType ?: MoodType.meh
                 }.mapValues { (_, counts) ->
-                    counts.map { MoodCount(it.moodType, it.mood_count) }
+                    counts.map { MoodCountByDay(it.day, it.moodType, it.mood_count) } // Use correct `day` field
                 }
             }
 
         Log.d("MoodEntryRepository", "Fetched weekly mood counts from Room (offline).")
         emitAll(weeklyCounts)
     }.flowOn(Dispatchers.IO)
+
 }
