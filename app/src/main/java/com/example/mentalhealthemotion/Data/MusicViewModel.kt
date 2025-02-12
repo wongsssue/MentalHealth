@@ -1,8 +1,5 @@
 package com.example.mentalhealthemotion.Data
 
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.LiveData
@@ -38,21 +35,12 @@ class MusicViewModel(private val musicRepository: MusicRepository) :ViewModel() 
         }
     }
 
-    fun togglePlay(context: Context, selectedSong: Song) {
+    fun togglePlay(selectedSong: Song) {
         _songs.value = _songs.value.map { song ->
-            if (song.title == selectedSong.title) {
-                if (!song.isPlaying) {
-                    // Open YouTube when the song is played
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/watch?v=${song.videoId}"))
-                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    context.startActivity(intent)
-                }
-                song.copy(isPlaying = !song.isPlaying)
-            } else {
-                song.copy(isPlaying = false) // Stop other songs
-            }
+            song.copy(isPlaying = song.title == selectedSong.title && !song.isPlaying)
         }
     }
+
 
     fun formatDuration(seconds: Int): String {
         val minutes = seconds / 60
