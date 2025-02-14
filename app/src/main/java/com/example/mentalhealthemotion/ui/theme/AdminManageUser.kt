@@ -91,13 +91,14 @@ fun AdminUserList(userViewModel: UserViewModel, backClick: () -> Unit) {
                     painter = painterResource(id = R.drawable.back),
                     contentDescription = "Back icon",
                     modifier = Modifier
-                        .size(35.dp)
-                        .clickable { backClick() }
+                        .size(32.dp)
+                        .clickable { backClick() },
+                    tint =  Color(0xFF2E3E64)
                 )
                 Spacer(modifier = Modifier.width(80.dp))
                 Text(
                     text = "Users List",
-                    fontSize = 30.sp,
+                    fontSize = 29.sp,
                     color = Color(0xFF2E3E64),
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,

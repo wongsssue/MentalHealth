@@ -21,7 +21,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.mentalhealthemotion.API.EduService
+import com.example.mentalhealthemotion.API.UnDrawApiService
 import com.example.mentalhealthemotion.Data.AppDatabase
 import com.example.mentalhealthemotion.R
 import android.content.Context
@@ -29,6 +29,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import com.example.mentalhealthemotion.Data.EduContentRepository
+import com.example.mentalhealthemotion.Data.EduContentViewModel
+import com.example.mentalhealthemotion.Data.EduContentViewModelFactory
 import com.example.mentalhealthemotion.Data.MoodEntryRepository
 import com.example.mentalhealthemotion.Data.MoodEntryViewModel
 import com.example.mentalhealthemotion.Data.MoodEntryViewModelFactory
@@ -91,26 +94,29 @@ fun MentalHeathApp(
     navController: NavHostController = rememberNavController(),
     context: Context = LocalContext.current
 ) {
-    val eduService = EduService()
 
     // Initialize the database and repository
     val appDatabase = remember { AppDatabase.getDatabase(context) }
     val userRepository = remember { UserRepository(appDatabase.userDao,context) }
     val moodEntryRepository = remember { MoodEntryRepository(appDatabase.moodEntryDao,context)}
     val musicRepository = remember { MusicRepository(appDatabase.moodEntryDao,context)}
+    val eduRepository = remember { EduContentRepository(appDatabase.eduContentDao,context)}
 
     // Create ViewModelFactory instances
     val userViewModelFactory = remember { UserViewModelFactory(userRepository) }
     val moodEntryViewModelFactory = remember { MoodEntryViewModelFactory(moodEntryRepository) }
     val musicViewModelFactory = remember { MusicViewModelFactory(musicRepository) }
+    val eduContentViewModelFactory = remember { EduContentViewModelFactory(eduRepository)}
 
     // Get ViewModel instances using the factory
     val userViewModel: UserViewModel = viewModel(factory = userViewModelFactory)
     val moodViewModel: MoodEntryViewModel = viewModel(factory = moodEntryViewModelFactory)
     val musicViewModel: MusicViewModel = viewModel(factory = musicViewModelFactory)
+    val eduViewModel: EduContentViewModel = viewModel(factory = eduContentViewModelFactory)
 
-    //Initialize admin
+    //Initialize admin, content
     userViewModel.initializeAdmin()
+    eduViewModel.initializeContent()
 
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route ?: MentalHeathAppScreen.GetStarted.name
@@ -313,6 +319,7 @@ fun MentalHeathApp(
             // Admin Manage Edu Page
             composable(route = MentalHeathAppScreen.AdminManageEduPage.name) {
                 AdminEducationalLibrary(
+                    eduViewModel,
                     backClick = { navController.navigate(MentalHeathAppScreen.AdminHomePage.name) }
                 )
             }
