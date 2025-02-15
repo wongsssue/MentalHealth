@@ -185,6 +185,7 @@ fun AdminEducationalLibrary(eduViewModel: EduContentViewModel, backClick:() -> U
         }
     }
 }
+
 @Composable
 fun LibraryItem(
     title: String,
@@ -244,16 +245,11 @@ fun LibraryItem(
             )
 
             Spacer(modifier = Modifier.height(16.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
                 // Decorated Image
                 Box(
                     modifier = Modifier
                         .size(120.dp)
                         .clip(RoundedCornerShape(15.dp))
-                        .border(2.dp, Color.Gray, RoundedCornerShape(12.dp))
                         .background(Color.White)
                         .shadow(6.dp, RoundedCornerShape(12.dp))
                 ) {
@@ -265,7 +261,7 @@ fun LibraryItem(
                     )
                 }
 
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Description Text
                 Text(
@@ -280,10 +276,9 @@ fun LibraryItem(
                     fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.Justify,
                     modifier = Modifier
-                        .weight(1f)
                         .padding(horizontal = 8.dp)
                 )
-            }
+
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -531,7 +526,7 @@ fun EditContentDialog(
 fun DeleteContentConfirmationDialog(
     eduViewModel: EduContentViewModel,
     title: String,
-    contentID:Int,
+    contentID: Int,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
@@ -547,7 +542,7 @@ fun DeleteContentConfirmationDialog(
         },
         text = {
             Text(
-                "Are you sure you want to delete content '${title} with id of ${contentID}'?",
+                "Are you sure you want to delete content '${title} '?",
                 fontSize = 14.sp,
                 textAlign = TextAlign.Center,
                 fontWeight = FontWeight.Medium,

@@ -21,7 +21,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.mentalhealthemotion.API.UnDrawApiService
 import com.example.mentalhealthemotion.Data.AppDatabase
 import com.example.mentalhealthemotion.R
 import android.content.Context
@@ -58,7 +57,6 @@ enum class MentalHeathAppScreen {
     MusicStartPage,
     MusicPage,
     EduLibraryPage,
-    EduContentPage,
     AdminHomePage,
     AdminManageEduPage,
     AdminManageUserPage
@@ -133,8 +131,7 @@ fun MentalHeathApp(
         MentalHeathAppScreen.HistoryPage.name,
         MentalHeathAppScreen.MusicStartPage.name,
         MentalHeathAppScreen.MusicPage.name,
-        MentalHeathAppScreen.EduLibraryPage.name,
-        MentalHeathAppScreen.EduContentPage.name
+        MentalHeathAppScreen.EduLibraryPage.name
     )
 
     Scaffold(
@@ -242,7 +239,7 @@ fun MentalHeathApp(
             composable(route = MentalHeathAppScreen.Menu.name){
                 MenuScreen(
                     onMenuItemClick = { item ->
-                        navController.navigate(item) // Navigate to the clicked item's route
+                        navController.navigate(item)
                     },
                     onSignOutClick = {
                         navController.navigate(MentalHeathAppScreen.GetStarted.name)
@@ -296,6 +293,7 @@ fun MentalHeathApp(
             // Educational Library Page
             composable(route = MentalHeathAppScreen.EduLibraryPage.name) {
                 EducationalLibraryPage(
+                    eduViewModel,
                     onNavigate = { route -> navController.navigate(route) }
                 )
             }
