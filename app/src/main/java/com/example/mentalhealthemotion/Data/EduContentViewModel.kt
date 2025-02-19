@@ -90,10 +90,15 @@ class EduContentViewModel(private val repository: EduContentRepository) : ViewMo
     fun displayAllContents() {
         viewModelScope.launch {
             repository.getAllContent().observeForever { contents ->
-                _contents.value = contents
+                val sortedContents = contents.sortedByDescending { content ->
+                    dateFormat.parse(content.dateCreated)?.time ?: 0L
+                }
+                _contents.value = sortedContents
             }
         }
     }
+
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
 
     private val _images = MutableLiveData<List<String>>()
     val images: LiveData<List<String>> get() = _images

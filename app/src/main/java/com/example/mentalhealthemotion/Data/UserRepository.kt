@@ -38,7 +38,7 @@ class UserRepository(
                 email = "wong@gmail.com",
                 password = "1234",
                 profilePicture = "",
-                createdDate = "",
+                createdDate = "2025-01-27 13:06:41",
                 accountStatus = AccountStatus.ACTIVE,
                 phoneNo = "000-012-8596",
                 birthDate = "",

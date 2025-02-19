@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">MentalHealth(Emotion)</string>
-
+    <string name="question">During the past month, how often have you had trouble sleeping because you</string>
+    sameT
 </resources>

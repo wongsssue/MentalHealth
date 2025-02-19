@@ -7,12 +7,13 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [User::class, MoodEntry::class, EduContent::class], version = 1, exportSchema = false)
+@Database(entities = [User::class, MoodEntry::class, EduContent::class, PSQIResult::class], version = 1, exportSchema = false)
 @TypeConverters(Converters::class, MoodTypeConverter::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract val userDao: UserDao
     abstract val moodEntryDao: MoodEntryDao
     abstract val eduContentDao: EduContentDao
+    abstract val psqiDao: PSQIDAO
 
     companion object {
         @Volatile

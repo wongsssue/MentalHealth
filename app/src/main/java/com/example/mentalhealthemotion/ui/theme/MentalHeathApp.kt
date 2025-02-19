@@ -37,6 +37,9 @@ import com.example.mentalhealthemotion.Data.MoodEntryViewModelFactory
 import com.example.mentalhealthemotion.Data.MusicRepository
 import com.example.mentalhealthemotion.Data.MusicViewModel
 import com.example.mentalhealthemotion.Data.MusicViewModelFactory
+import com.example.mentalhealthemotion.Data.PSQIRepository
+import com.example.mentalhealthemotion.Data.PSQIVIewModel
+import com.example.mentalhealthemotion.Data.PSQIViewModelFactory
 import com.example.mentalhealthemotion.Data.UserRepository
 import com.example.mentalhealthemotion.Data.UserViewModel
 import com.example.mentalhealthemotion.Data.UserViewModelFactory
@@ -99,18 +102,21 @@ fun MentalHeathApp(
     val moodEntryRepository = remember { MoodEntryRepository(appDatabase.moodEntryDao,context)}
     val musicRepository = remember { MusicRepository(appDatabase.moodEntryDao,context)}
     val eduRepository = remember { EduContentRepository(appDatabase.eduContentDao,context)}
+    val psqiRepository = remember { PSQIRepository(appDatabase.psqiDao, context)}
 
     // Create ViewModelFactory instances
     val userViewModelFactory = remember { UserViewModelFactory(userRepository) }
     val moodEntryViewModelFactory = remember { MoodEntryViewModelFactory(moodEntryRepository) }
     val musicViewModelFactory = remember { MusicViewModelFactory(musicRepository) }
     val eduContentViewModelFactory = remember { EduContentViewModelFactory(eduRepository)}
+    val psqiViewModelFactory = remember {PSQIViewModelFactory(psqiRepository)}
 
     // Get ViewModel instances using the factory
     val userViewModel: UserViewModel = viewModel(factory = userViewModelFactory)
     val moodViewModel: MoodEntryViewModel = viewModel(factory = moodEntryViewModelFactory)
     val musicViewModel: MusicViewModel = viewModel(factory = musicViewModelFactory)
     val eduViewModel: EduContentViewModel = viewModel(factory = eduContentViewModelFactory)
+    val psqiViewModel: PSQIVIewModel = viewModel(factory = psqiViewModelFactory)
 
     //Initialize admin, content
     userViewModel.initializeAdmin()
@@ -279,13 +285,27 @@ fun MentalHeathApp(
             // Sleep Test Page
             composable(route = MentalHeathAppScreen.QuestionnairePage.name) {
                 QuestionnaireScreen(
-                    onNavigate = { route -> navController.navigate(route) }
+                    pqsiViewModel = psqiViewModel,
+                    userViewModel = userViewModel,
+                    onNavigate = { route -> navController.navigate(route) },
+                    ResultScreen = {navController.navigate(MentalHeathAppScreen.ResultPage.name)}
+                )
+            }
+
+            // Test Result Page
+            composable(route = MentalHeathAppScreen.ResultPage.name) {
+                ResultScreen(
+                    pqsiViewModel = psqiViewModel,
+                    onNavigate = { route -> navController.navigate(route) },
+                    backHome = {navController.navigate(MentalHeathAppScreen.HomePage.name)}
                 )
             }
 
             // Test History Page
             composable(route = MentalHeathAppScreen.HistoryPage.name) {
                 HistoryScreen(
+                    psqiViewModel = psqiViewModel,
+                    userViewModel = userViewModel,
                     onNavigate = { route -> navController.navigate(route) }
                 )
             }
@@ -324,17 +344,3 @@ fun MentalHeathApp(
         }
     }
 }
-
-//@Composable
-//fun SleepQualityApp() {
-//    val navController = rememberNavController()
-//    NavHost(navController = navController, startDestination = "questionnaire") {
-//        composable("questionnaire") { QuestionnaireScreen(navController) }
-//        composable("result/{result}") { backStackEntry ->
-//            val result = backStackEntry.arguments?.getString("result") ?: "Unknown"
-//            ResultScreen(navController, result)
-//        }
-//        composable("history") { HistoryScreen(navController) }
-//    }
-//}
-//

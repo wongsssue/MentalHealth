@@ -122,10 +122,15 @@ class UserViewModel(private val userRepository: UserRepository) : ViewModel() {
     fun displayAllUsers() {
         viewModelScope.launch {
             userRepository.getAllUsers().observeForever { userList ->
-                _users.value = userList
+                val sortedUsers = userList.sortedByDescending { user ->
+                    dateFormat.parse(user.createdDate)?.time ?: 0L
+                }
+                _users.value = sortedUsers
             }
         }
     }
+
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
 
     // Register user function
     fun registerUser(onSuccess: () -> Unit, onError: (String) -> Unit) {
@@ -205,9 +210,7 @@ class UserViewModel(private val userRepository: UserRepository) : ViewModel() {
                 userRepository.registerUser(user)
                 clearFields()
                 // Update the list of users
-                userRepository.getAllUsers().observeForever { userList ->
-                    _users.value = userList
-                }
+                displayAllUsers()
                 onSuccess()
             } catch (e: Exception) {
                 "Failed to add user: ${e.message}"
@@ -263,9 +266,7 @@ class UserViewModel(private val userRepository: UserRepository) : ViewModel() {
         viewModelScope.launch {
             try {
                 userRepository.updateUser(user)
-                userRepository.getAllUsers().observeForever { userList ->
-                    _users.value = userList
-                }
+                displayAllUsers()
                 _currentUser.value = user
                 updateUsername("")
                 updateEmail("")
@@ -325,9 +326,7 @@ class UserViewModel(private val userRepository: UserRepository) : ViewModel() {
         viewModelScope.launch {
             try {
                 userRepository.deleteUser(userId)
-                userRepository.getAllUsers().observeForever { userList ->
-                    _users.value = userList
-                }
+                displayAllUsers()
             } catch (e: Exception) {
                 ("Failed to delete user: ${e.message}")
             }

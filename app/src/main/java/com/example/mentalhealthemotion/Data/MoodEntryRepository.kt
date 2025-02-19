@@ -94,19 +94,12 @@ class MoodEntryRepository(
                     .collection("moodEntries")
                     .get()
                     .await()
-                val moodEntries =
-                    snapshot.documents.mapNotNull { it.toObject(MoodEntry::class.java) }
-                Log.d(
-                    "MoodEntryRepository",
-                    "Fetched ${moodEntries.size} mood entries from Firestore."
-                )
+                val moodEntries = snapshot.documents.mapNotNull { it.toObject(MoodEntry::class.java) }
+                Log.d("MoodEntryRepository", "Fetched ${moodEntries.size} mood entries from Firestore.")
                 moodEntries
             } else {
                 val localEntries = moodEntryDao.getAllMoodEntriesByUser(userId)
-                Log.d(
-                    "MoodEntryRepository",
-                    "Fetched ${localEntries.size} mood entries from Room (offline)."
-                )
+                Log.d("MoodEntryRepository", "Fetched ${localEntries.size} mood entries from Room (offline).")
                 localEntries
             }
         } catch (e: Exception) {
