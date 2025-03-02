@@ -2,14 +2,17 @@ package com.example.mentalhealthemotion.Data
 
 import android.content.Context
 import android.util.Log
-import androidx.lifecycle.LiveData
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
-import java.time.Duration
-import java.time.LocalTime
-import java.util.Calendar
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 class PSQIRepository(private val dao: PSQIDAO, private val context: Context) {
     private val firestore = FirebaseFirestore.getInstance()
@@ -252,5 +255,55 @@ class PSQIRepository(private val dao: PSQIDAO, private val context: Context) {
             emptyList()
         }
     }
+
+    private fun getCurrentMonthYear(): String {
+        val timeZone = TimeZone.getTimeZone("Asia/Kuala_Lumpur")
+        val dateFormat = SimpleDateFormat("MM-yyyy", Locale.getDefault()).apply {
+            this.timeZone = timeZone
+        }
+        return dateFormat.format(Date())
+    }
+
+    fun getDailySleepScoresForMonth(userId: Int): Flow<List<DailySleepScore>> {
+        val monthYear = getCurrentMonthYear()
+
+        return flow {
+            try {
+                if (isOnline()) {
+                    // Fetch from Firestore
+                    val snapshot = resultCollection
+                        .document(userId.toString())
+                        .collection("psqiResults")
+                        .get()
+                        .await()
+
+                    val sleepEntries = snapshot.documents
+                        .mapNotNull { it.toObject(PSQIResult::class.java) }
+                        .filter { it.date.orEmpty().contains(monthYear) } // Filter by current month-year
+
+                    // Group by day and calculate average score
+                    val dailySleepScores = sleepEntries
+                        .groupBy { it.date?.substring(0, 2)?.toIntOrNull() ?: 0 } // Group by day
+                        .map { (day, scores) ->
+                            DailySleepScore(
+                                day = day,
+                                sleepScore = scores.map { it.score }.average().toFloat()
+                            )
+                        }
+                        .sortedBy { it.day } // Sort by day
+
+                    emit(dailySleepScores) // Emit Firestore data
+                } else {
+                    // Fetch from Room Database (which already computes avg)
+                    val offlineEntries = dao.getDailySleepFeedback(userId, monthYear)
+                    emit(offlineEntries) // Emit Room database data
+                }
+            } catch (e: Exception) {
+                Log.e("SleepRepository", "Failed to fetch data: ${e.message}")
+                emit(emptyList()) // Emit empty list in case of error
+            }
+        }.flowOn(Dispatchers.IO) // Run on background thread
+    }
+
 
 }

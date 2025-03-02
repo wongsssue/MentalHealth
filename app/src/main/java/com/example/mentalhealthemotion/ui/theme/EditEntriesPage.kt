@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,8 +51,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import com.example.mentalhealthemotion.Data.MoodEntryViewModel
@@ -62,6 +63,8 @@ import com.example.mentalhealthemotion.Data.UserViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
 
 
 @OptIn(ExperimentalPermissionsApi::class)
@@ -98,8 +101,19 @@ fun EditEntryPage(
                 moodEntryViewModel.updateAudio(entry.audioAttachment?: "No audio recorded")
                 val (date, duration) = moodEntryViewModel.getAudioFileDetails(context, entry.audioAttachment?: "No audio recorded")
                 moodEntryViewModel.setAudioDetails(date, duration)
+                moodEntryViewModel.updateSentimentResult(entry.sentimentResult)
             }
         }
+    }
+
+    LaunchedEffect(moodEntryViewModel.quickNote.value) {
+        snapshotFlow { moodEntryViewModel.quickNote.value }
+            .debounce(10000) // Add delay to avoid unnecessary frequent calls
+            .collectLatest { note ->
+                if (note.isNotBlank()) {
+                    moodEntryViewModel.analyzeNote()
+                }
+            }
     }
 
 
@@ -161,6 +175,26 @@ fun EditEntryPage(
             ),
             colors = TextFieldDefaults.textFieldColors(backgroundColor = Color(0xFFF5F5F5))
         )
+        Spacer(modifier = Modifier.height(10.dp))
+        Text(
+            text = "Analysis Result:",
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF2E3E64)
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Text(
+            text = moodEntryViewModel.sentimentResult.value, // Now updates properly
+            fontSize = 12.sp,
+            fontStyle = FontStyle.Italic,
+            textAlign = TextAlign.Center,
+            color = Color(0xFF2E3E64)
+        )
+/*
+        Button(onClick = { moodEntryViewModel.analyzeNote() }) {
+            Text("Get sentiment Result")
+        }*/
 
         Spacer(modifier = Modifier.height(24.dp))
         Divider(color = Color.LightGray, thickness = 0.5.dp)
@@ -233,6 +267,7 @@ fun EditEntryPage(
                                 moodType = moodEntryViewModel.selectedMood.value,
                                 activityName = moodEntryViewModel.selectedActivities.value,
                                 note = moodEntryViewModel.quickNote.value,
+                                sentimentResult = moodEntryViewModel.sentimentResult.value,
                                 date = moodEntryViewModel.selectedDate.value
                             ),
                             moodEntryViewModel.audioAttachment.value,

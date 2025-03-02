@@ -259,6 +259,7 @@ fun MentalHeathApp(
                 StatisticPage(
                     moodEntryViewModel = moodViewModel,
                     userViewModel = userViewModel,
+                    psqiViewModel= psqiViewModel,
                     toEntryPage = {navController.navigate(MentalHeathAppScreen.MoodTrackerPage.name) },
                     onNavigate = { route -> navController.navigate(route) }
                 )

@@ -1,5 +1,6 @@
 package com.example.mentalhealthemotion.Data
 
+import androidx.lifecycle.LiveData
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
@@ -52,4 +53,15 @@ interface MoodEntryDao {
 
     @Query("SELECT * FROM moodEntry WHERE userID = :userId ORDER BY date DESC LIMIT 1")
     suspend fun getLatestMoodEntry(userId: Int): MoodEntry?
+
+
+    @Query("""
+    SELECT * 
+    FROM moodEntry
+    WHERE SUBSTR(date, 4, 7) = :monthYear AND userId = :userId
+""")
+    fun getMoodEntriesForMonth(userId: Int, monthYear: String): Flow<List<MoodEntry>>
+
+    @Query("SELECT note FROM moodEntry WHERE moodEntryID = :moodEntryId")
+     fun getUserNote(moodEntryId: Int): String?
 }

@@ -1,5 +1,6 @@
 package com.example.mentalhealthemotion.ui.theme
 
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -22,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
+import androidx.compose.material.TextButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
@@ -36,15 +38,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.rememberAsyncImagePainter
 import com.example.mentalhealthemotion.Data.MoodEntry
 import com.example.mentalhealthemotion.Data.MoodEntryViewModel
 import com.example.mentalhealthemotion.Data.UserViewModel
 import com.example.mentalhealthemotion.R
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.AlertDialog
+import androidx.core.content.ContextCompat
+
 
 @Composable
 fun MoodTrackerPage(
@@ -55,6 +66,33 @@ fun MoodTrackerPage(
     val moodEntries by moodEntryViewModel.moodEntries.observeAsState(emptyList())
     val user by userViewModel.currentUser.observeAsState()
     val scrollState = rememberScrollState()
+    val context = LocalContext.current
+    val imageUri by moodEntryViewModel.imageUri.observeAsState()
+
+    // Camera Permission Handling
+    val cameraPermission = Manifest.permission.CAMERA
+    val hasCameraPermission = remember { mutableStateOf(false) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        hasCameraPermission.value = granted
+    }
+
+    // Camera Launcher
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success) {
+            moodEntryViewModel.onPhotoCaptured(true, context, onNavigate)
+            moodEntryViewModel.updateShowDialog(true)
+        }
+    }
+
+    // Check and request camera permission
+    LaunchedEffect(Unit) {
+        if (ContextCompat.checkSelfPermission(context, cameraPermission) != PackageManager.PERMISSION_GRANTED) {
+            permissionLauncher.launch(cameraPermission)
+        } else {
+            hasCameraPermission.value = true
+        }
+    }
 
     LaunchedEffect(user?.userID) {
         user?.userID?.let { userId ->
@@ -71,7 +109,7 @@ fun MoodTrackerPage(
                 modifier = Modifier
                     .padding(16.dp)
                     .fillMaxWidth()
-                    .height(150.dp),
+                    .height(205.dp),
                 elevation = CardDefaults.cardElevation(4.dp),
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White)
@@ -128,6 +166,42 @@ fun MoodTrackerPage(
                             }
                         }
                     }
+                    TextButton(onClick = {
+                        if (hasCameraPermission.value) {
+                            moodEntryViewModel.prepareCamera(context)
+                            cameraLauncher.launch(moodEntryViewModel.getPhotoUri())
+                        } else {
+                            permissionLauncher.launch(cameraPermission) // Request permission if not granted
+                        }
+                    }) {
+                        Text(
+                            text = "Need Help? Try face emotion recognition to choose your mood.",
+                            textDecoration = TextDecoration.Underline,
+                            color = Color(0xFF2E3E64),
+                            fontSize = 12.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(10.dp)
+                        )
+                    }
+                    // Show the captured image in a pop-up dialog
+                    if (moodEntryViewModel.showPicDialog.value) {
+                        AlertDialog(
+                            onDismissRequest = { moodEntryViewModel.updateShowDialog(false) }, // Dismiss when tapping outside
+                            title = { Text(text = "Analyzing Image...") },
+                            text = {
+                                Image(
+                                    painter = rememberAsyncImagePainter(imageUri),
+                                    contentDescription = "Captured Image",
+                                    modifier = Modifier.size(250.dp)
+                                )
+                            },
+                            backgroundColor = Color.White,
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.padding(16.dp),
+                            buttons = {}
+                        )
+                    }
+
 
                 }
             }
@@ -336,7 +410,7 @@ fun optionsWindow(
                         .clickable {
                             moodEntryViewModel.setCurrentMoodEntry(null)
                             onDismiss()
-                                   },
+                        },
                     textAlign = TextAlign.Center
                 )
             }

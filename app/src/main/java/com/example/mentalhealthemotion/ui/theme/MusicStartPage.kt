@@ -24,12 +24,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+
 @Composable
-fun MusicStartPage(onNavigate: (String) -> Unit, musicSuggestions: () -> Unit) {
+fun MusicStartPage(
+    onNavigate: (String) -> Unit,
+    musicSuggestions: () -> Unit
+) {
+
     Box(
         modifier = Modifier
             .fillMaxSize(),
@@ -67,9 +71,10 @@ fun MusicStartPage(onNavigate: (String) -> Unit, musicSuggestions: () -> Unit) {
                 color = Color.Gray,
                 textAlign = TextAlign.Center
             )
+
             Spacer(modifier = Modifier.height(30.dp))
             Button(
-                onClick = { musicSuggestions()},
+                onClick = { musicSuggestions() },
                 colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFBEE4F4)),
                 shape = RoundedCornerShape(20.dp),
                 modifier = Modifier
@@ -78,8 +83,14 @@ fun MusicStartPage(onNavigate: (String) -> Unit, musicSuggestions: () -> Unit) {
                     .width(150.dp),
                 elevation = ButtonDefaults.elevation(defaultElevation = 10.dp)
             ) {
-                Text(text = "Start Now", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "Start Now",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
+
         }
         // Bottom Navigation Bar
         BottomNavigationBar(
@@ -87,10 +98,4 @@ fun MusicStartPage(onNavigate: (String) -> Unit, musicSuggestions: () -> Unit) {
             modifier = Modifier.align(Alignment.BottomCenter)
         )
     }
-}
-
-@Composable
-@Preview(showBackground = true)
-fun PreviewMusicStartPage() {
-    MusicStartPage(onNavigate = {}, musicSuggestions = {})
 }

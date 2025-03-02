@@ -1,5 +1,8 @@
 package com.example.mentalhealthemotion.ui.theme
 
+import android.Manifest
+import android.app.Activity
+import android.content.pm.PackageManager
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,18 +16,29 @@ import androidx.compose.material.*
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.example.mentalhealthemotion.Data.MoodType
 import com.example.mentalhealthemotion.Data.MusicViewModel
 import com.example.mentalhealthemotion.Data.UserViewModel
 import com.example.mentalhealthemotion.R
@@ -32,6 +46,7 @@ import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.PlayerConstan
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.YouTubePlayerListener
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
+import android.content.Context as Context
 
 @Composable
 fun MusicPage(
@@ -44,6 +59,13 @@ fun MusicPage(
     val latestMood by musicViewModel.moodEntry.observeAsState()
     var isSortedAlphabetically by remember { mutableStateOf(false) }
     val songs by musicViewModel.songs.collectAsState()
+
+    //val showCheckCalmness = latestMood?.moodType in listOf(MoodType.awful, MoodType.bad)
+
+    val context = LocalContext.current
+   /* val lifecycleOwner = LocalContext.current as LifecycleOwner
+    val heartRate by musicViewModel.heartRate.observeAsState()
+    val isMeasuring = remember { mutableStateOf(false) }*/
 
     LaunchedEffect(user?.userID) {
         user?.userID?.let { userId ->
@@ -82,63 +104,140 @@ fun MusicPage(
                     modifier = Modifier.padding(bottom = 30.dp)
                 )
             }
-
-            // Filter Bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                horizontalArrangement = Arrangement.End
-            ) {
-                Button(
-                    onClick = {
-                        isSortedAlphabetically = !isSortedAlphabetically
-                        musicViewModel.sortSongs(isSortedAlphabetically)
-                    },
-                    colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
-                    shape = RoundedCornerShape(20.dp),
+            // Message when no mood has been logged
+            if (latestMood == null) {
+                Text(
+                    text = "Please log your mood first to get music recommendations.",
+                    fontSize = 18.sp,
+                    color = Color.LightGray,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier
-                        .padding(horizontal = 15.dp)
-                        .height(50.dp)
-                        .width(150.dp)
-                        .border(3.dp, shape = RoundedCornerShape(20.dp), color = Color(0xFFBEE4F4)),
+                        .padding(16.dp)
+                        .padding(top = 180.dp)
+                )
+            } else {
+                // Filter Bar
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    horizontalArrangement = Arrangement.End
                 ) {
-                    Row(
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
+                    Button(
+                        onClick = {
+                            isSortedAlphabetically = !isSortedAlphabetically
+                            musicViewModel.sortSongs(isSortedAlphabetically)
+                        },
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
+                        shape = RoundedCornerShape(20.dp),
+                        modifier = Modifier
+                            .padding(horizontal = 15.dp)
+                            .height(50.dp)
+                            .width(150.dp)
+                            .border(
+                                3.dp,
+                                shape = RoundedCornerShape(20.dp),
+                                color = Color(0xFFBEE4F4)
+                            ),
                     ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.filter),
-                            modifier = Modifier.size(25.dp),
-                            contentDescription = "Filter Icon",
-                            tint = Color(0xFF66AEDD)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.filter),
+                                modifier = Modifier.size(25.dp),
+                                contentDescription = "Filter Icon",
+                                tint = Color(0xFF66AEDD)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (isSortedAlphabetically) "Shuffle" else "Sort A-Z",
+                                color = Color(0xFF2E3E64),
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+
+                }
+                Spacer(modifier = Modifier.height(14.dp))
+                /*
+                if (showCheckCalmness) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Heart Rate Display
                         Text(
-                            text = if (isSortedAlphabetically) "Shuffle" else "Sort A-Z",
+                            text = buildAnnotatedString {
+                                append("Heart Rate: ")
+                                withStyle(style = SpanStyle(fontWeight = FontWeight.Medium)) {
+                                    append(heartRate.toString())
+                                }
+                                append(" BPM")
+                            },
+                            fontSize = 15.sp,
                             color = Color(0xFF2E3E64),
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Normal
                         )
+                        // "Check Calmness" button for negative moods
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Button(
+                                onClick = {
+                                    if (isMeasuring.value) {
+                                        isMeasuring.value = false
+                                        musicViewModel.stopMeasurement()
+                                    } else {
+                                        if (checkCameraPermission(context)) {
+                                            isMeasuring.value = true
+                                            musicViewModel.startMeasurement(context, lifecycleOwner)
+                                        }
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    backgroundColor = Color(
+                                        0xFFBEE4F4
+                                    )
+                                )
+                            ) {
+                                Text(
+                                    if (isMeasuring.value) "Reset" else "Check Calmness",
+                                    color = Color.White
+                                )
+                            }
+
+                            // Show message when measurement is active
+                            if (isMeasuring.value) {
+                                Text(
+                                    text = "Place one of your fingers on the camera lens.",
+                                    fontSize = 12.sp,
+                                    color = Color.Gray,
+                                    fontStyle = FontStyle.Italic,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                            }
+                        }
                     }
                 }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
 
-            // Playlist
-            LazyColumn {
-                itemsIndexed(songs) { index, track ->
-                    MusicCard(
-                        trackName = track.title,
-                        isPlaying = track.isPlaying,
-                        authorName = track.authorName,
-                        duration = musicViewModel.formatDuration(track.durationInSeconds),
-                        youtubeVideoId = track.videoId,
-                        onTogglePlay = {
-                            musicViewModel.togglePlay(track)
-                        },
-                        modifier = Modifier.padding(bottom = if (index == songs.lastIndex) 90.dp else 10.dp)
-                    )
+                Spacer(modifier = Modifier.height(10.dp))*/
+                // Playlist
+                LazyColumn {
+                    itemsIndexed(songs) { index, track ->
+                        MusicCard(
+                            trackName = track.title,
+                            isPlaying = track.isPlaying,
+                            authorName = track.authorName,
+                            duration = musicViewModel.formatDuration(track.durationInSeconds),
+                            youtubeVideoId = track.videoId,
+                            onTogglePlay = {
+                                musicViewModel.togglePlay(track)
+                            },
+                            modifier = Modifier.padding(bottom = if (index == songs.lastIndex) 90.dp else 10.dp)
+                        )
+                    }
+
                 }
             }
 
@@ -149,6 +248,24 @@ fun MusicPage(
             onNavigate = onNavigate,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
+    }
+}
+
+
+private fun checkCameraPermission(context: Context): Boolean {
+    return if (ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
+    ) {
+        true
+    } else {
+        ActivityCompat.requestPermissions(
+            (context as Activity),
+            arrayOf(Manifest.permission.CAMERA),
+            100
+        )
+        false
     }
 }
 

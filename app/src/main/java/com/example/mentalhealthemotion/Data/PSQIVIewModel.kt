@@ -6,6 +6,9 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.mikephil.charting.data.BarEntry
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -339,4 +342,43 @@ class PSQIVIewModel(private val repository: PSQIRepository) : ViewModel() {
             }
         }
     }
+
+    private val _sleepQualityChartData = MutableStateFlow<List<BarEntry>>(emptyList())
+    val sleepQualityChartData: StateFlow<List<BarEntry>> = _sleepQualityChartData
+
+    private val _sleepQualityXLabels = MutableStateFlow<List<String>>(emptyList())
+    val sleepQualityXLabels: StateFlow<List<String>> = _sleepQualityXLabels
+
+    private val _currentMonth = MutableStateFlow<String>("")
+    val currentMonth: StateFlow<String> = _currentMonth
+
+
+    fun createDailySleepScoresChartForMonth(userId: Int) {
+        viewModelScope.launch {
+            repository.getDailySleepScoresForMonth(userId).collect { dailySleepScores ->
+                val barEntries = dailySleepScores.map {
+                    BarEntry(it.day.toFloat(), it.sleepScore.toFloat()) // X = Day, Y = Sleep Score
+                }
+
+                val xLabels = dailySleepScores.map { "${it.day}" }
+                _sleepQualityChartData.value = barEntries
+                _sleepQualityXLabels.value = xLabels
+                _currentMonth.value = getCurrentMonth()
+                Log.d("SleepViewModel", "X Labels: ${_sleepQualityXLabels.value}")
+                Log.d("SleepViewModel", "Fetched Sleep Scores: $dailySleepScores")
+                Log.d("SleepViewModel", "BarEntries: ${_sleepQualityChartData.value}")
+
+
+            }
+        }
+    }
+
+    private fun getCurrentMonth(): String {
+        val timeZone = TimeZone.getTimeZone("Asia/Kuala_Lumpur")
+        val dateFormat = SimpleDateFormat("MMMM", Locale.getDefault()).apply {
+            this.timeZone = timeZone
+        }
+        return dateFormat.format(Date())
+    }
+
 }

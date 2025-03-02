@@ -20,6 +20,8 @@ data class MoodEntry(
     val moodType: MoodType = MoodType.meh,
     val date: String? = null,
     val note: String = "",
+    val sentimentResult: String = "",
+    var transcription: String? = null,
     val audioAttachment: String? = null,
     val activityName: List<String> = emptyList()
 ) {
@@ -30,6 +32,8 @@ data class MoodEntry(
         moodType = MoodType.meh,
         date = null,
         note = "",
+        sentimentResult = "",
+        transcription= null,
         audioAttachment = null,
         activityName = emptyList()
     )

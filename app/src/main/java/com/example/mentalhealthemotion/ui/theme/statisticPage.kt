@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -31,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.mentalhealthemotion.Data.MoodEntryViewModel
 import com.example.mentalhealthemotion.Data.MoodType
+import com.example.mentalhealthemotion.Data.PSQIVIewModel
 import com.example.mentalhealthemotion.Data.UserViewModel
 import com.example.mentalhealthemotion.R
 import com.github.mikephil.charting.charts.BarChart
@@ -44,12 +46,12 @@ import com.github.mikephil.charting.data.LineDataSet
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.github.mikephil.charting.data.Entry
 
-
 @Composable
 fun StatisticPage(
     onNavigate: (String) -> Unit,
     toEntryPage: () -> Unit,
     moodEntryViewModel: MoodEntryViewModel,
+    psqiViewModel: PSQIVIewModel,
     userViewModel: UserViewModel
 ) {
     val moodCounts by moodEntryViewModel.moodCounts.observeAsState(emptyList())
@@ -59,6 +61,9 @@ fun StatisticPage(
     val labels by moodEntryViewModel.moodActivityLabels.collectAsState()
     val weeklyBarEntries by moodEntryViewModel.weeklyMoodChartData.collectAsState()
     val weeklyLabels by moodEntryViewModel.weeklyMoodLabels.collectAsState()
+    val sleepQualityBarEntries by psqiViewModel.sleepQualityChartData.collectAsState()
+    val sleepQualityLabels by psqiViewModel.sleepQualityXLabels.collectAsState()
+    val month by psqiViewModel.currentMonth.collectAsState()
     var chartType by remember { mutableStateOf("Bar") } // Bar or Line chart toggle
 
     LaunchedEffect(user?.userID) {
@@ -66,6 +71,7 @@ fun StatisticPage(
             moodEntryViewModel.countMoodsForCurrentMonth(userId)
             moodEntryViewModel.createMoodActivityDataForMonth(userId)
             moodEntryViewModel.createMoodDataForCurrentWeek(userId)
+            psqiViewModel.createDailySleepScoresChartForMonth(userId)
         }
     }
 
@@ -115,6 +121,7 @@ fun StatisticPage(
             }
 
             val isMonthlyChartEmpty = barEntries.isEmpty() || barEntries.values.all { it.isEmpty() }
+            val isSleepQualityChartEmpty = sleepQualityBarEntries.isEmpty() || sleepQualityBarEntries.all { entry -> entry.y == 0f }
 
             if (isMonthlyChartEmpty) {
                 Text(
@@ -149,6 +156,21 @@ fun StatisticPage(
                 weeklyBarEntries.forEach { (moodType, entries) ->
                     weeklyMoodTypeChart(moodType, entries, weeklyLabels, chartType)
                 }
+            }
+
+            if (isSleepQualityChartEmpty ) {
+                Text(
+                    text = "No sleep quality data available.",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                )
+            } else {
+                SleepQualityChart(sleepQualityBarEntries, sleepQualityLabels, chartType, month)
             }
 
             Spacer(modifier = Modifier.height(30.dp))
@@ -270,6 +292,73 @@ val moodColors = mapOf(
     MoodType.rad to Color(0xFF2008000) //Dark Green
 )
 
+
+@Composable
+fun SleepQualityChart(
+    barEntries: List<BarEntry>,
+    labels: List<String>,
+    chartType: String,
+    month: String
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(280.dp),
+        elevation = CardDefaults.cardElevation(4.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Sleep Quality in $month",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF2E3E64),
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = buildAnnotatedString {
+                    withStyle(style = SpanStyle(color = Color(0xFF4CAF50))) {
+                        append("Score 0-5 = Good Sleep Quality\n")
+                    }
+                    withStyle(style = SpanStyle(color = Color(0xFFFFC107))) {
+                        append("Score 6-10 = Moderate Sleep Quality\n")
+                    }
+                    withStyle(style = SpanStyle(color = Color(0xFFF44336))) {
+                        append("Score > 10 = Poor Sleep Quality")
+                    }
+                },
+                fontSize = 10.sp,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                if (chartType == "Bar") {
+                    BarChartView(barEntries, labels, Color(0xFF2E3E64))
+                } else {
+                    LineChartView(
+                        barEntries.map { Entry(it.x, it.y) },
+                        labels,
+                        Color(0xFF2E3E64)
+                    )
+                }
+            }
+        }
+    }
+    Spacer(modifier = Modifier.height(20.dp))
+}
+
+
 @Composable
 fun weeklyMoodTypeChart(
     moodType: MoodType,
@@ -358,7 +447,7 @@ fun moodTypeChart(
                             color = Color.Black,
                             fontWeight = FontWeight.Bold
                         )
-                    ) { // Change color and style for moodType
+                    ) {
                         append("\"$moodType\"")
                     }
                     append(" days that has these activities")
@@ -395,10 +484,10 @@ fun BarChartView(entries: List<BarEntry>, labels: List<String>, chartColor: Colo
                 description.isEnabled = false
                 xAxis.valueFormatter = IndexAxisValueFormatter(labels)
                 xAxis.position = XAxis.XAxisPosition.BOTTOM
-                xAxis.labelRotationAngle = 45f  // Rotate labels to avoid overlap
+                xAxis.labelRotationAngle = 60f  // Rotate labels to avoid overlap
                 xAxis.isGranularityEnabled = true
                 xAxis.setDrawGridLines(false)
-
+                xAxis.granularity = 1f
                 axisLeft.setDrawGridLines(false)
                 axisLeft.granularity = 1f  // Ensure Y-axis increments by 1
                 axisLeft.isGranularityEnabled = true
@@ -428,10 +517,10 @@ fun LineChartView(entries: List<Entry>, labels: List<String>, chartColor: Color)
                 description.isEnabled = false
                 xAxis.valueFormatter = IndexAxisValueFormatter(labels)
                 xAxis.position = XAxis.XAxisPosition.BOTTOM
-                xAxis.labelRotationAngle = 45f
+                xAxis.labelRotationAngle = 60f
                 xAxis.isGranularityEnabled = true
                 xAxis.setDrawGridLines(false)
-
+                xAxis.granularity = 1f
                 axisLeft.setDrawGridLines(false)
                 axisLeft.granularity = 1f  // Ensure Y-axis increments by 1
                 axisLeft.isGranularityEnabled = true

@@ -286,7 +286,6 @@ fun ForgotPasswordStateValidEmail(userViewModel: UserViewModel) {
 fun ForgotPasswordStateValidCode(userViewModel: UserViewModel) {
     val passwordError by userViewModel.passwordValidationError.observeAsState()
     val context = LocalContext.current
-    val user by userViewModel.currentUser.observeAsState()
     Text(
         text = "Reset your password",
         fontSize = 20.sp,

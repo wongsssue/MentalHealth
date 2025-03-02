@@ -1,6 +1,5 @@
 package com.example.mentalhealthemotion.Data
 
-import android.content.Context
 import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
@@ -16,6 +15,16 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import android.content.Context
+import android.net.Uri
+import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
+import org.json.JSONException
+import org.json.JSONObject
+import java.io.IOException
 
 class MoodEntryRepository(
     private val moodEntryDao: MoodEntryDao,
@@ -294,5 +303,198 @@ class MoodEntryRepository(
         Log.d("MoodEntryRepository", "Fetched weekly mood counts from Room (offline).")
         emitAll(weeklyCounts)
     }.flowOn(Dispatchers.IO)
+
+    //face emotion detection
+    private val apiKey = "7uLxaOq7gDj6tkExACp7CeauUb6HV0gP"
+    private val apiSecret = "80afFCbeGyRgJ_ImECE_LWW_GrqeajoR"
+    private val url = "https://api-us.faceplusplus.com/facepp/v3/detect"
+    private val client = OkHttpClient()
+
+    suspend fun detectEmotion(context: Context, imageUri: Uri): MoodType {
+        return withContext(Dispatchers.IO) {
+            try {
+                val inputStream = context.contentResolver.openInputStream(imageUri)
+                val imageBytes = inputStream?.readBytes()
+                inputStream?.close()
+
+                if (imageBytes == null) return@withContext MoodType.meh
+
+                val requestBody = MultipartBody.Builder()
+                    .setType(MultipartBody.FORM)
+                    .addFormDataPart("api_key", apiKey)
+                    .addFormDataPart("api_secret", apiSecret)
+                    .addFormDataPart("return_attributes", "emotion")
+                    .addFormDataPart(
+                        "image_file", "uploaded_image.jpg",
+                        RequestBody.create("image/jpeg".toMediaTypeOrNull(), imageBytes)
+                    )
+                    .build()
+
+                val request = Request.Builder().url(url).post(requestBody).build()
+
+                val response = client.newCall(request).execute()
+                val responseBody = response.body?.string() ?: "{}"
+                extractMoodFromResponse(responseBody)
+
+            } catch (e: Exception) {
+                MoodType.meh
+            }
+        }
+    }
+
+
+    private fun extractMoodFromResponse(response: String): MoodType {
+        val jsonObject = JSONObject(response)
+        val emotionObj = jsonObject.optJSONArray("faces")?.optJSONObject(0)
+            ?.optJSONObject("attributes")?.optJSONObject("emotion")
+
+        return if (emotionObj != null) {
+            val happiness = emotionObj.optDouble("happiness", 0.0)
+            val anger = emotionObj.optDouble("anger", 0.0)
+            val neutral = emotionObj.optDouble("neutral", 0.0)
+            val sadness = emotionObj.optDouble("sadness", 0.0)
+            val disgust = emotionObj.optDouble("disgust", 0.0)
+            val surprise = emotionObj.optDouble("surprise", 0.0)
+            val fear = emotionObj.optDouble("fear", 0.0)
+            Log.d("EmotionValues", "Happiness: $happiness, Anger: $anger, Neutral: $neutral, Sadness: $sadness, Disgust: $disgust, Surprise: $surprise, Fear: $fear")
+
+            when {
+                happiness > 65 -> MoodType.rad
+                happiness > 50 -> MoodType.good
+                anger > 20 -> MoodType.awful
+                neutral > 60 -> MoodType.meh
+                disgust > 10 -> MoodType.bad
+                sadness > 20 || (sadness > 10 && neutral < 80) -> MoodType.bad
+                surprise > 50 -> MoodType.good
+                fear > 35 -> MoodType.bad
+                else -> MoodType.meh
+            }
+        } else {
+            MoodType.meh
+        }
+    }
+
+
+    private val apiSentimentAnalysisKey = "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"
+    private val urlSentimentAnalysis = "https://api-inference.huggingface.co/models/cardiffnlp/twitter-roberta-base-sentiment"
+    private val clientSentimentAnalysis = OkHttpClient()
+
+
+    fun analyzeSentiment(userNote: String, callback: (String) -> Unit) {
+        val json = """{"inputs": "$userNote"}"""
+        val mediaType = "application/json".toMediaType()
+        val requestBody = json.toRequestBody(mediaType)
+
+        val request = Request.Builder()
+            .url(urlSentimentAnalysis)
+            .addHeader("Authorization", "Bearer $apiSentimentAnalysisKey")
+            .post(requestBody)
+            .build()
+
+        clientSentimentAnalysis.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                callback("Error: ${e.message}")
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                response.body?.string()?.let { responseBody ->
+                    val mood = parseAndMapSentiment(responseBody)
+                    callback(mood)
+                }
+            }
+        })
+    }
+
+    private fun parseAndMapSentiment(response: String): String {
+        try {
+            Log.d("SentimentResponse", "Raw API Response: $response")
+
+            // Parse outermost array first
+            val outerArray = JSONArray(response)
+            if (outerArray.length() == 0) return "Unknown Mood"
+
+            // Extract the inner array (first element)
+            val jsonArray = outerArray.getJSONArray(0)
+            if (jsonArray.length() == 0) return "Unknown Mood"
+
+            // Find the highest score
+            var maxScoreIndex = 0
+            var maxScore = jsonArray.getJSONObject(0).getDouble("score")
+
+            for (i in 1 until jsonArray.length()) {
+                val currentScore = jsonArray.getJSONObject(i).getDouble("score")
+                if (currentScore > maxScore) {
+                    maxScore = currentScore
+                    maxScoreIndex = i
+                }
+            }
+
+            // Get the label with the highest score
+            val sentimentLabel = jsonArray.getJSONObject(maxScoreIndex).getString("label").lowercase()
+
+            // Map API label to meaningful sentiment
+            val sentiment = when (sentimentLabel) {
+                "label_0" -> "negative"  // High Stress, Low Happiness
+                "label_1" -> "neutral"   // Medium Mood
+                "label_2" -> "positive"  // High Happiness, No Stress
+                else -> "mixed"
+            }
+
+            val moodDescription = when (sentiment) {
+                "negative" -> "It looks like you're feeling stressed and a bit low right now"
+                "neutral" -> "You're feeling pretty neutral at the moment"
+                "positive" -> "It seems like you're feeling great today"
+                else -> "You seem to have mixed emotions, experiencing both positive and negative feelings"
+            }
+
+            val recommendation = getRecommendation(sentiment)
+
+            return "$moodDescription. \n $recommendation"
+
+        } catch (e: JSONException) {
+            Log.e("SentimentParsing", "JSON Parsing Error: ${e.message}")
+            return "Error processing sentiment analysis"
+        }
+    }
+
+
+
+    private fun getRecommendation(sentiment: String): String {
+        return when (sentiment) {
+            "negative" -> {
+                val recommendations = listOf(
+                    "Talk to someone you trust—sharing can lighten the load.",
+                    "Focus on what you can control and let go of what you can’t.",
+                    "Remind yourself that this feeling is temporary—it will pass.",
+                    "Hug yourself or hold something comforting, like a pillow or blanket.",
+                    "Say something kind to yourself, like “I am doing my best.”"
+                )
+                "${recommendations.random()}"
+            }
+            "neutral" -> {
+                val recommendations = listOf(
+                    "Smile at yourself in the mirror—it can subtly lift your mood.",
+                    "Not every day has to be exciting—sometimes, just being is enough.",
+                    "A neutral day can be a good time to reflect or just enjoy the stillness.",
+                    "Maybe today is a good time to try something simple, like a new song or a short walk.",
+                    "You don’t have to do anything big—sometimes, just being present is enough."
+                )
+                "${recommendations.random()}"
+            }
+            "positive" -> {
+                val recommendations = listOf(
+                    "Take a moment to fully enjoy and appreciate this feeling—savor it!",
+                    "Write down what’s making you feel good today to look back on later.",
+                    "Take a mindful moment and appreciate how good it feels to feel good.",
+                    "Use this motivation to learn something new or try a fun challenge.",
+                    "Smile and take a deep breath, letting the positivity sink in."
+                )
+                "${recommendations.random()}"
+            }
+            else -> "No recommendation available."
+        }
+    }
+
+
 
 }

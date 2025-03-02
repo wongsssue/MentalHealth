@@ -12,3 +12,8 @@ data class MoodCountByDay(
     val moodType: MoodType,
     val mood_count: Int
 )
+
+data class DailySleepScore(
+    val day: Int,       // X-axis (Day of the month)
+    val sleepScore: Float // Y-axis (Sleep quality score)
+)

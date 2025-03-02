@@ -3,10 +3,12 @@ package com.example.mentalhealthemotion.Data
 import android.content.Context
 import android.media.MediaPlayer
 import android.media.MediaRecorder
+import android.net.Uri
 import android.os.Environment
 import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
+import androidx.core.content.FileProvider
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -28,7 +30,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.Calendar
 
-
 class MoodEntryViewModel(private val repository: MoodEntryRepository) : ViewModel() {
     private val _moodEntries = MutableLiveData<List<MoodEntry>>()
     val moodEntries: LiveData<List<MoodEntry>> get() = _moodEntries
@@ -37,12 +38,13 @@ class MoodEntryViewModel(private val repository: MoodEntryRepository) : ViewMode
     private var _selectedActivities = mutableStateOf<List<String>>(emptyList())
     private var _quickNote = mutableStateOf("")
     private var _selectedDate = mutableStateOf(generateCurrentDate())
+    private var _showPicDialog = mutableStateOf(false)
 
     var selectedMood: State<MoodType> = _selectedMood
     var selectedActivities: State<List<String>> = _selectedActivities
     var quickNote: State<String> = _quickNote
     var selectedDate: State<String> = _selectedDate
-
+    var showPicDialog:State<Boolean> = _showPicDialog
 
     private val _audioAttachment = mutableStateOf<String?>(null)
     val audioAttachment: State<String?> = _audioAttachment
@@ -57,6 +59,10 @@ class MoodEntryViewModel(private val repository: MoodEntryRepository) : ViewMode
 
     fun updateAudio(newAudio: String) {
         _audioAttachment.value = newAudio
+    }
+
+    fun updateShowDialog(newValue: Boolean){
+        _showPicDialog.value = newValue
     }
 
 
@@ -91,6 +97,8 @@ class MoodEntryViewModel(private val repository: MoodEntryRepository) : ViewMode
         _selectedDate.value = generateCurrentDate()
         _audioAttachment.value = ""
         _audioDetails.value = Pair("None","None")
+        _imageUri.value = null
+        _sentimentResult.value = ""
     }
 
     private val _currentMoodEntry = MutableLiveData<MoodEntry?>()
@@ -150,7 +158,8 @@ class MoodEntryViewModel(private val repository: MoodEntryRepository) : ViewMode
                     date = currentDate,
                     note = quickNote.value,
                     audioAttachment = filePath?: getDefaultAudioPath(context),
-                    activityName = selectedActivities.value
+                    activityName = selectedActivities.value,
+                    sentimentResult = sentimentResult.value
 
                 )
                 repository.insertMoodEntry(userId, moodEntry)
@@ -444,6 +453,70 @@ class MoodEntryViewModel(private val repository: MoodEntryRepository) : ViewMode
         } catch (e: Exception) {
             Log.e("DateConversion", "Invalid day: $day", e)
             return "Unknown"
+        }
+    }
+
+    //Face emotion detect
+    private val _imageUri = MutableLiveData<Uri?>()
+    val imageUri: LiveData<Uri?> get() = _imageUri
+
+    fun updateImageUri(uri: Uri?) {
+        _imageUri.value = uri
+    }
+
+    private lateinit var photoFile: File
+    private lateinit var photoUri: Uri
+
+    fun prepareCamera(context: Context) {
+        val timeStamp = System.currentTimeMillis() 
+        photoFile = File(context.cacheDir, "captured_image_$timeStamp.jpg")
+        photoUri = FileProvider.getUriForFile(context, "${context.packageName}.provider", photoFile)
+    }
+
+    fun getPhotoUri(): Uri {
+        return photoUri ?: Uri.EMPTY // Avoid returning null
+    }
+
+    fun onPhotoCaptured(success: Boolean, context: Context, onNavigate: (String) -> Unit) {
+        if (success) {
+            updateImageUri(photoUri) // Notify UI
+            detectEmotion(context, photoUri, onNavigate) // Auto-send to API
+        }
+    }
+
+    fun detectEmotion(context: Context, imageUri: Uri, onNavigate: (String) -> Unit) {
+        viewModelScope.launch {
+            val mood = repository.detectEmotion(context, imageUri)
+            _selectedMood.value = mood
+            onNavigate("EditEntryPage?isEditing=false")
+           _showPicDialog.value = false
+        }
+    }
+
+
+    //sentiment analysis (note)
+    private var _sentimentResult = mutableStateOf("")
+    var sentimentResult: State<String> = _sentimentResult
+
+
+    fun updateSentimentResult(newResult: String) {
+        _sentimentResult.value = newResult
+    }
+
+
+    fun analyzeNote() {
+        viewModelScope.launch {
+            val note = _quickNote.value.trim()
+            if (note.isBlank()) {
+                _sentimentResult.value = "No note found"
+                return@launch
+            }
+
+            repository.analyzeSentiment(note) { result ->
+                viewModelScope.launch {
+                    updateSentimentResult(result)
+                }
+            }
         }
     }
 
