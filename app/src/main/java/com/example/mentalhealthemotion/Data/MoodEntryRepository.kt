@@ -374,11 +374,9 @@ class MoodEntryRepository(
         }
     }
 
-
     private val apiSentimentAnalysisKey = "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"
     private val urlSentimentAnalysis = "https://api-inference.huggingface.co/models/cardiffnlp/twitter-roberta-base-sentiment"
     private val clientSentimentAnalysis = OkHttpClient()
-
 
     fun analyzeSentiment(userNote: String, callback: (String) -> Unit) {
         val json = """{"inputs": "$userNote"}"""
