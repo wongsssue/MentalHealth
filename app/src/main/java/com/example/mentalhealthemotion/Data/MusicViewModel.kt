@@ -39,7 +39,6 @@ class MusicViewModel(private val musicRepository: MusicRepository) :ViewModel() 
         }
     }
 
-
     fun sortSongs(isSortedAlphabetically: Boolean) {
         _songs.value = if (isSortedAlphabetically) {
             _songs.value.sortedBy { it.title }
