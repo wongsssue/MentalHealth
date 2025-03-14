@@ -1,7 +1,12 @@
 package com.example.mentalhealthemotion.ui.theme
 
 import android.Manifest
+import android.content.Intent
+import android.net.Uri
+import android.provider.ContactsContract
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -42,14 +47,18 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.AlertDialog
 import androidx.compose.material.TextField
 import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Divider
+import androidx.compose.material.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.draw.alpha
@@ -443,6 +452,17 @@ fun MoodSelectionCard(
     moodEntryViewModel: MoodEntryViewModel,
     selectedMood: MoodType
 ) {
+    val context = LocalContext.current
+    var showDialog by remember { mutableStateOf(false) }
+    val quote = moodEntryViewModel.selectedQuote.value ?: moodEntryViewModel.getPositiveQuote()
+    val selectedPhoneNumber by moodEntryViewModel.selectedPhoneNumber.collectAsState()
+    // Contact picker launcher
+    val contactPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        moodEntryViewModel.pickContact(context, result)
+    }
+
     val moods = listOf(
         MoodType.awful to R.drawable.awful,
         MoodType.bad to R.drawable.bad,
@@ -455,7 +475,7 @@ fun MoodSelectionCard(
         modifier = Modifier
             .padding(16.dp)
             .fillMaxWidth()
-            .height(150.dp),
+            .height(230.dp),
         elevation = CardDefaults.cardElevation(4.dp),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White)
@@ -487,6 +507,93 @@ fun MoodSelectionCard(
                     )
                 }
             }
+            Spacer(modifier = Modifier.height(20.dp))
+            if(moodEntryViewModel.selectedMood.value == MoodType.bad || moodEntryViewModel.selectedMood.value == MoodType.awful){
+                Row {
+                    Image(
+                        painter = painterResource(id = R.drawable.speaker_icon),
+                        contentDescription = "Speaker",
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Column(modifier = Modifier.padding(start = 6.dp)) {
+                        Text(
+                            text = quote,
+                            textAlign = TextAlign.Center,
+                            fontSize = 12.sp
+                        )
+                        TextButton(
+                            onClick = { showDialog = true }
+                        ) {
+                            Text("Call for Support", textDecoration = TextDecoration.Underline, fontSize = 12.sp)
+                        }
+                        TextButton(
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)
+                                contactPickerLauncher.launch(intent)
+                                showDialog = false
+                            }
+                        ) {
+                            Text("Choose from Contacts",textDecoration = TextDecoration.Underline,)
+                        }
+                    }
+
+                    if (showDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showDialog = false },
+                            title = { Text("Choose Call Option", fontWeight = FontWeight.Medium) },
+                            text = { Text("Would you like to call the hotline, WhatsApp for support, or select a contact?") },
+                            buttons = {
+                                Column(
+                                    modifier = Modifier.padding(10.dp),
+                                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                                ) {
+                                    TextButton(
+                                        onClick = {
+                                            val hotlineNumber = Uri.parse("tel:15999") // Talian Kasih Hotline
+                                            val callIntent = Intent(Intent.ACTION_DIAL, hotlineNumber)
+                                            context.startActivity(callIntent)
+                                            showDialog = false
+                                        }
+                                    ) {
+                                        Text("Call 24-Hour Hotline (Talian Kasih)",textDecoration = TextDecoration.Underline)
+                                    }
+
+                                    TextButton(
+                                        onClick = {
+                                            val whatsappIntent = Intent(Intent.ACTION_VIEW).apply {
+                                                data = Uri.parse("https://wa.me/601926159999")
+                                            }
+                                            context.startActivity(whatsappIntent)
+                                            showDialog = false
+                                        }
+                                    ) {
+                                        Text("WhatsApp Support: 019-261 5999",textDecoration = TextDecoration.Underline)
+                                    }
+
+                                    TextButton(
+                                        onClick = {
+                                            val intent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)
+                                            contactPickerLauncher.launch(intent)
+                                            showDialog = false
+                                        }
+                                    ) {
+                                        Text("Choose from Contacts",textDecoration = TextDecoration.Underline)
+                                    }
+                                }
+                            }
+                        )
+                    }
+
+                    // If a contact is selected, initiate the call
+                    selectedPhoneNumber?.let { phoneNumber ->
+                        val callIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phoneNumber"))
+                        context.startActivity(callIntent)
+                        moodEntryViewModel.clearSelectedPhoneNumber()
+                    }
+
+                }
+            }
+
         }
     }
 }

@@ -455,8 +455,6 @@ class MoodEntryRepository(
         }
     }
 
-
-
     private fun getRecommendation(sentiment: String): String {
         return when (sentiment) {
             "negative" -> {

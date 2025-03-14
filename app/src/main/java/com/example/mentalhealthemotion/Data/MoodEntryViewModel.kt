@@ -1,5 +1,9 @@
 package com.example.mentalhealthemotion.Data
 
+
+import android.database.Cursor
+import android.provider.ContactsContract
+import androidx.activity.result.ActivityResult
 import android.content.Context
 import android.media.MediaPlayer
 import android.media.MediaRecorder
@@ -99,6 +103,7 @@ class MoodEntryViewModel(private val repository: MoodEntryRepository) : ViewMode
         _audioDetails.value = Pair("None","None")
         _imageUri.value = null
         _sentimentResult.value = ""
+        _selectedQuote.value = null
     }
 
     private val _currentMoodEntry = MutableLiveData<MoodEntry?>()
@@ -119,6 +124,60 @@ class MoodEntryViewModel(private val repository: MoodEntryRepository) : ViewMode
     }
 
     private val dateFormat = SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.getDefault())
+
+    private val _selectedQuote = mutableStateOf<String?>(null)
+    val selectedQuote: State<String?> = _selectedQuote
+
+    fun getPositiveQuote(): String {
+        if (_selectedQuote.value == null) { // Only assign once per mood entry
+            val positiveQuotes = listOf(
+                "Almost everything will work again if you unplug it for a few minutes, including you.",
+                "You don’t have to control your thoughts. You just have to stop letting them control you.",
+                "Every storm runs out of rain.",
+                "It’s okay to not be okay, as long as you are not giving up.",
+                "This too shall pass",
+                "The darkest nights produce the brightest stars.",
+                "Do what you can, with what you have, where you are.",
+                "You have survived 100% of your worst days. You can survive this one too.",
+                "Your past does not define your future. Every day is a new beginning.",
+                "Difficult roads often lead to beautiful destinations."
+            )
+            _selectedQuote.value = positiveQuotes.random()
+        }
+        return _selectedQuote.value!!
+    }
+
+    private val _selectedPhoneNumber = MutableStateFlow<String?>(null)
+    val selectedPhoneNumber: StateFlow<String?> = _selectedPhoneNumber
+
+    fun pickContact(context: Context, result: ActivityResult) {
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val contactUri: Uri? = result.data?.data
+            if (contactUri != null) {
+                val cursor: Cursor? = context.contentResolver.query(
+                    contactUri,
+                    arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER),
+                    null,
+                    null,
+                    null
+                )
+                cursor?.use {
+                    if (it.moveToFirst()) {
+                        val phoneNumber = it.getString(0) // Extract phone number
+                        viewModelScope.launch {
+                            _selectedPhoneNumber.value = phoneNumber
+                        }
+                    }
+                }
+            }
+        }
+    }
+    fun clearSelectedPhoneNumber() {
+        viewModelScope.launch {
+            _selectedPhoneNumber.value = null
+        }
+    }
+
 
     fun generateUniqueFourDigitId(): Int {
         val uuid = UUID.randomUUID().toString()
