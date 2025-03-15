@@ -67,7 +67,7 @@ fun MusicStartPage(
                 modifier = Modifier.padding(bottom = 20.dp)
             )
             Text(
-                text = "Let's boost your mood through music!",
+                text = "Lift your spirits with some music!",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Medium,
                 color = Color.Gray,

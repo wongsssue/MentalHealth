@@ -115,11 +115,11 @@ class MusicRepository (
 
     fun fetchSongsForMood(mood: MoodType): List<Song> {
         val query = when (mood) {
-             MoodType.rad -> "Mood booster playlist"
+            MoodType.rad -> "Super happy playlist"
             MoodType.good -> "Feel good songs playlist"
-            MoodType.meh -> "Chill music playlist"
-            MoodType.bad -> "Lofi Chill Playlist"
-            MoodType.awful -> "Soft Lofi Playlist"
+            MoodType.meh -> "Mood Booster playlist"
+            MoodType.bad ->   "Relaxing Lofi Chillhop"
+            MoodType.awful -> "Gentle Classical Piano"
 
         }
 
