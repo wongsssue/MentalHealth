@@ -32,6 +32,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.example.mentalhealthemotion.Data.MoodEntryViewModel
+import com.example.mentalhealthemotion.Data.MoodType
 import com.example.mentalhealthemotion.Data.MusicViewModel
 import com.example.mentalhealthemotion.Data.UserViewModel
 import com.example.mentalhealthemotion.R
@@ -46,7 +48,8 @@ fun MusicPage(
     onNavigate: (String) -> Unit,
     toMusicStartPage: () -> Unit,
     musicViewModel: MusicViewModel,
-    userViewModel: UserViewModel
+    userViewModel: UserViewModel,
+    moodEntryViewModel: MoodEntryViewModel
 ) {
     val user by userViewModel.currentUser.observeAsState()
     val latestMood by musicViewModel.moodEntry.observeAsState()
@@ -60,15 +63,20 @@ fun MusicPage(
     val heartRate by musicViewModel.heartRate.observeAsState()
     val isMeasuring = remember { mutableStateOf(false) }*/
 
+    val overrideMood = when (moodEntryViewModel.overrideMood.value) {
+        MoodType.awful, MoodType.bad -> moodEntryViewModel.overrideMood.value
+        else -> latestMood?.moodType
+    }
+
     LaunchedEffect(user?.userID) {
         user?.userID?.let { userId ->
             musicViewModel.getLatestMoodEntry(userId)
         }
     }
 
-    LaunchedEffect(latestMood) {
-        latestMood?.let { moodEntry ->
-            musicViewModel.loadSongsForMood(moodEntry.moodType)
+    LaunchedEffect(overrideMood) {
+        overrideMood?.let { moodType ->
+            musicViewModel.loadSongsForMood(moodType)
         }
     }
 
@@ -86,7 +94,10 @@ fun MusicPage(
                     tint = Color(0xFF2E3E64),
                     modifier = Modifier
                         .size(28.dp)
-                        .clickable { toMusicStartPage() }
+                        .clickable {
+                            toMusicStartPage()
+                            moodEntryViewModel.clearOverrideMood()
+                        }
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 Text(

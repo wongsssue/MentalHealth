@@ -26,12 +26,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.mentalhealthemotion.Data.MoodEntryViewModel
 
 
 @Composable
 fun MusicStartPage(
     onNavigate: (String) -> Unit,
-    musicSuggestions: () -> Unit
+    musicSuggestions: () -> Unit,
+    moodEntryViewModel: MoodEntryViewModel
 ) {
 
     Box(
@@ -74,7 +76,10 @@ fun MusicStartPage(
 
             Spacer(modifier = Modifier.height(30.dp))
             Button(
-                onClick = { musicSuggestions() },
+                onClick = {
+                    musicSuggestions()
+                    moodEntryViewModel.clearOverrideMood()
+                },
                 colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFBEE4F4)),
                 shape = RoundedCornerShape(20.dp),
                 modifier = Modifier

@@ -40,6 +40,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -66,6 +67,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.navigation.NavController
 import com.example.mentalhealthemotion.Data.MoodEntryViewModel
 import com.example.mentalhealthemotion.Data.MoodType
 import com.example.mentalhealthemotion.Data.UserViewModel
@@ -82,7 +84,8 @@ fun EditEntryPage(
     userViewModel: UserViewModel,
     moodEntryViewModel: MoodEntryViewModel,
     isEditing: Boolean,
-    onback: () -> Unit
+    onback: () -> Unit,
+    navController: NavController
 ) {
     val user by userViewModel.currentUser.observeAsState()
     val scrollState = rememberScrollState()
@@ -145,7 +148,7 @@ fun EditEntryPage(
             }
         )
         // Mood Selection Card
-        MoodSelectionCard(moodEntryViewModel, moodEntryViewModel.selectedMood.value)
+        MoodSelectionCard(moodEntryViewModel, moodEntryViewModel.selectedMood.value, navController)
         Spacer(modifier = Modifier.height(24.dp))
         Divider(color = Color.LightGray, thickness = 0.5.dp)
         Spacer(modifier = Modifier.height(24.dp))
@@ -450,7 +453,8 @@ fun AudioPlayer(
 @Composable
 fun MoodSelectionCard(
     moodEntryViewModel: MoodEntryViewModel,
-    selectedMood: MoodType
+    selectedMood: MoodType,
+    navController: NavController
 ) {
     val context = LocalContext.current
     var showDialog by remember { mutableStateOf(false) }
@@ -475,7 +479,7 @@ fun MoodSelectionCard(
         modifier = Modifier
             .padding(16.dp)
             .fillMaxWidth()
-            .height(230.dp),
+            .wrapContentHeight(),
         elevation = CardDefaults.cardElevation(4.dp),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White)
@@ -513,9 +517,11 @@ fun MoodSelectionCard(
                     Image(
                         painter = painterResource(id = R.drawable.speaker_icon),
                         contentDescription = "Speaker",
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(19.dp)
                     )
-                    Column(modifier = Modifier.padding(start = 6.dp)) {
+                    Column(modifier = Modifier.padding(start = 6.dp),
+                            verticalArrangement = Arrangement.spacedBy(0.dp)
+                    ) {
                         Text(
                             text = quote,
                             textAlign = TextAlign.Center,
@@ -528,12 +534,16 @@ fun MoodSelectionCard(
                         }
                         TextButton(
                             onClick = {
-                                val intent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)
-                                contactPickerLauncher.launch(intent)
-                                showDialog = false
-                            }
+                                val selectedMood = moodEntryViewModel.selectedMood.value
+                                moodEntryViewModel.updateOverrideMood(selectedMood)
+                                val shouldNavigateToMusic = selectedMood !in listOf(MoodType.meh, MoodType.rad, MoodType.good)
+                                if (shouldNavigateToMusic) {
+                                    navController.navigate(MentalHeathAppScreen.MusicPage.name)
+                                }
+                            },
+                            modifier = Modifier.padding(top = 0.dp)
                         ) {
-                            Text("Choose from Contacts",textDecoration = TextDecoration.Underline,)
+                            Text("Feel like listening to some music?", textDecoration = TextDecoration.Underline,fontSize = 12.sp)
                         }
                     }
 

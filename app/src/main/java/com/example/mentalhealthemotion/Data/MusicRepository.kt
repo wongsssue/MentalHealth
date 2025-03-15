@@ -115,11 +115,12 @@ class MusicRepository (
 
     fun fetchSongsForMood(mood: MoodType): List<Song> {
         val query = when (mood) {
-             MoodType.rad -> "Mood Booster-Playlist by Spotify"
+             MoodType.rad -> "Mood booster playlist"
             MoodType.good -> "Feel good songs playlist"
             MoodType.meh -> "Chill music playlist"
-            MoodType.bad -> "Playlist sad"
-            MoodType.awful -> "Sad emotional song playlist"
+            MoodType.bad -> "Lofi Chill Playlist"
+            MoodType.awful -> "Soft Lofi Playlist"
+
         }
 
         val searchUrl = "https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=5&q=${query}&key=$apiKey"

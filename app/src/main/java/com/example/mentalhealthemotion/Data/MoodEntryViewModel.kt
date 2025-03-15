@@ -61,6 +61,18 @@ class MoodEntryViewModel(private val repository: MoodEntryRepository) : ViewMode
         _audioDetails.value = Pair(date, duration)
     }
 
+    private var _overrideMood = mutableStateOf(MoodType.meh)
+    var overrideMood: State<MoodType> = _overrideMood
+
+    fun updateOverrideMood(newMood: MoodType) {
+        _overrideMood.value = newMood
+    }
+
+    fun clearOverrideMood() {
+        _overrideMood.value = MoodType.meh
+    }
+
+
     fun updateAudio(newAudio: String) {
         _audioAttachment.value = newAudio
     }

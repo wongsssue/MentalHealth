@@ -228,7 +228,8 @@ fun MentalHeathApp(
                     userViewModel,
                     moodViewModel,
                     isEditing = isEditing,
-                    onback = { navController.navigate(MentalHeathAppScreen.MoodTrackerPage.name) }
+                    onback = { navController.navigate(MentalHeathAppScreen.MoodTrackerPage.name) },
+                    navController = navController
                 )
             }
 
@@ -269,7 +270,8 @@ fun MentalHeathApp(
             composable(route = MentalHeathAppScreen.MusicStartPage.name) {
                 MusicStartPage(
                     onNavigate = { route -> navController.navigate(route) },
-                    musicSuggestions = { navController.navigate(MentalHeathAppScreen.MusicPage.name)}
+                    musicSuggestions = { navController.navigate(MentalHeathAppScreen.MusicPage.name)},
+                    moodEntryViewModel = moodViewModel
                 )
             }
 
@@ -279,7 +281,8 @@ fun MentalHeathApp(
                     onNavigate = { route -> navController.navigate(route) },
                     toMusicStartPage = {navController.navigate(MentalHeathAppScreen.MusicStartPage.name)},
                     musicViewModel = musicViewModel,
-                    userViewModel = userViewModel
+                    userViewModel = userViewModel,
+                    moodEntryViewModel = moodViewModel
                 )
             }
 
