@@ -5,9 +5,13 @@ import android.database.Cursor
 import android.provider.ContactsContract
 import androidx.activity.result.ActivityResult
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
 import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.net.Uri
+import android.os.Build
 import android.os.Environment
 import android.util.Log
 import androidx.compose.runtime.State
@@ -30,6 +34,7 @@ import java.util.Locale
 import java.util.TimeZone
 import java.util.UUID
 import com.github.mikephil.charting.data.BarEntry
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.Calendar
@@ -563,7 +568,35 @@ class MoodEntryViewModel(private val repository: MoodEntryRepository) : ViewMode
            _showPicDialog.value = false
         }
     }
+/*
+    fun detectEmotion(context: Context, imageUri: Uri, onNavigate: (String) -> Unit) {
+        viewModelScope.launch {
+            val bitmap = getBitmapFromUri(context, imageUri)
 
+            if (bitmap != null) {
+                val mood = repository.detectEmotion(bitmap)
+                _selectedMood.value = mood
+                onNavigate("EditEntryPage?isEditing=false")
+                _showPicDialog.value = false
+            } else {
+                // Handle the case where bitmap is null (e.g., show an error message)
+                Log.e("EmotionDetection", "Failed to decode image from URI.")
+            }
+        }
+    }*/
+
+    private fun getBitmapFromUri(context: Context, uri: Uri): Bitmap? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            // For API 28+ (Android 9+)
+            val source = ImageDecoder.createSource(context.contentResolver, uri)
+            ImageDecoder.decodeBitmap(source).copy(Bitmap.Config.ARGB_8888, true)
+        } else {
+            // For API 24-27 (Android 7-8)
+            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                BitmapFactory.decodeStream(inputStream)?.copy(Bitmap.Config.ARGB_8888, true)
+            }
+        }
+    }
 
     //sentiment analysis (note)
     private var _sentimentResult = mutableStateOf("")

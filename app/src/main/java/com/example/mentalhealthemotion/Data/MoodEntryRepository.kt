@@ -16,6 +16,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 import android.content.Context
+import android.graphics.Bitmap
 import android.net.Uri
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
@@ -24,7 +25,12 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
+import org.tensorflow.lite.Interpreter
+import java.io.FileInputStream
 import java.io.IOException
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.nio.channels.FileChannel
 
 class MoodEntryRepository(
     private val moodEntryDao: MoodEntryDao,
@@ -40,6 +46,28 @@ class MoodEntryRepository(
         val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
         return capabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
+
+    private lateinit var interpreter: Interpreter
+
+    init {
+        loadModel(context)
+    }
+
+    fun loadModel(context: Context) {
+        try {
+            val assetFileDescriptor = context.assets.openFd("AIEmotionDetection.tflite")
+            val inputStream = FileInputStream(assetFileDescriptor.fileDescriptor)
+            val fileChannel = inputStream.channel
+            val startOffset = assetFileDescriptor.startOffset
+            val declaredLength = assetFileDescriptor.declaredLength
+            val modelBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
+
+            interpreter = Interpreter(modelBuffer)
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
+    }
+
 
     suspend fun insertMoodEntry(userId: Int, moodEntry: MoodEntry) = withContext(Dispatchers.IO) {
         try {
@@ -342,7 +370,6 @@ class MoodEntryRepository(
         }
     }
 
-
     private fun extractMoodFromResponse(response: String): MoodType {
         val jsonObject = JSONObject(response)
         val emotionObj = jsonObject.optJSONArray("faces")?.optJSONObject(0)
@@ -373,6 +400,57 @@ class MoodEntryRepository(
             MoodType.meh
         }
     }
+
+    /*
+    // Preprocess image: Resize, normalize, and convert to ByteBuffer
+    private fun preprocessImage(bitmap: Bitmap): ByteBuffer {
+        val resizedBitmap = Bitmap.createScaledBitmap(bitmap, 224, 224, true)
+        val inputBuffer = ByteBuffer.allocateDirect(1 * 224 * 224 * 3 * 4) // Float32 (4 bytes per pixel)
+        inputBuffer.order(ByteOrder.nativeOrder())
+
+        val intValues = IntArray(224 * 224)
+        resizedBitmap.getPixels(intValues, 0, 224, 0, 0, 224, 224)
+
+        for (pixel in intValues) {
+            val r = (pixel shr 16 and 0xFF) / 255.0f
+            val g = (pixel shr 8 and 0xFF) / 255.0f
+            val b = (pixel and 0xFF) / 255.0f
+            inputBuffer.putFloat(r)
+            inputBuffer.putFloat(g)
+            inputBuffer.putFloat(b)
+        }
+        return inputBuffer
+    }
+
+    fun detectEmotion(bitmap: Bitmap): MoodType {
+        val inputBuffer = preprocessImage(bitmap)
+
+        // Output array for predictions
+        val outputArray = Array(1) { FloatArray(5) } // Model output shape [1,5]
+
+        // Run inference
+        interpreter.run(inputBuffer, outputArray)
+
+        // Log the raw output values
+        Log.d("EmotionDetection", "Model Output: ${outputArray[0].joinToString()}")
+
+        // Get the highest probability emotion
+        val maxIndex = outputArray[0].indices.maxByOrNull { outputArray[0][it] } ?: 0
+
+        // Map index to MoodType enum (ensure it matches your model's output)
+        val moodMapping = listOf(
+            MoodType.awful, MoodType.bad, MoodType.meh, MoodType.good, MoodType.rad
+        )
+
+        val detectedMood = moodMapping.getOrElse(maxIndex) { MoodType.meh } // Default to MEH if index is out of bounds
+
+        // Log the detected mood
+        Log.d("EmotionDetection", "Detected Mood: $detectedMood (Index: $maxIndex)")
+
+        return detectedMood
+    }*/
+
+
 
     private val apiSentimentAnalysisKey = "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"
     private val urlSentimentAnalysis = "https://api-inference.huggingface.co/models/cardiffnlp/twitter-roberta-base-sentiment"
