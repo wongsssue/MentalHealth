@@ -401,7 +401,6 @@ class MoodEntryRepository(
         }
     }
 
-    /*
     // Preprocess image: Resize, normalize, and convert to ByteBuffer
     private fun preprocessImage(bitmap: Bitmap): ByteBuffer {
         val resizedBitmap = Bitmap.createScaledBitmap(bitmap, 224, 224, true)
@@ -422,11 +421,11 @@ class MoodEntryRepository(
         return inputBuffer
     }
 
-    fun detectEmotion(bitmap: Bitmap): MoodType {
+    fun detectFaceEmotion(bitmap: Bitmap): MoodType {
         val inputBuffer = preprocessImage(bitmap)
 
         // Output array for predictions
-        val outputArray = Array(1) { FloatArray(5) } // Model output shape [1,5]
+        val outputArray = Array(1) { FloatArray(4) } // Model output shape [1,4]
 
         // Run inference
         interpreter.run(inputBuffer, outputArray)
@@ -439,7 +438,7 @@ class MoodEntryRepository(
 
         // Map index to MoodType enum (ensure it matches your model's output)
         val moodMapping = listOf(
-            MoodType.awful, MoodType.bad, MoodType.meh, MoodType.good, MoodType.rad
+            MoodType.awful, MoodType.bad, MoodType.good, MoodType.meh
         )
 
         val detectedMood = moodMapping.getOrElse(maxIndex) { MoodType.meh } // Default to MEH if index is out of bounds
@@ -448,9 +447,7 @@ class MoodEntryRepository(
         Log.d("EmotionDetection", "Detected Mood: $detectedMood (Index: $maxIndex)")
 
         return detectedMood
-    }*/
-
-
+    }
 
     private val apiSentimentAnalysisKey = "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"
     private val urlSentimentAnalysis = "https://api-inference.huggingface.co/models/cardiffnlp/twitter-roberta-base-sentiment"

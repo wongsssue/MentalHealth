@@ -574,7 +574,7 @@ class MoodEntryViewModel(private val repository: MoodEntryRepository) : ViewMode
             val bitmap = getBitmapFromUri(context, imageUri)
 
             if (bitmap != null) {
-                val mood = repository.detectEmotion(bitmap)
+                val mood = repository.detectFaceEmotion(bitmap)
                 _selectedMood.value = mood
                 onNavigate("EditEntryPage?isEditing=false")
                 _showPicDialog.value = false
@@ -583,7 +583,7 @@ class MoodEntryViewModel(private val repository: MoodEntryRepository) : ViewMode
                 Log.e("EmotionDetection", "Failed to decode image from URI.")
             }
         }
-    }*/
+    }
 
     private fun getBitmapFromUri(context: Context, uri: Uri): Bitmap? {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -596,7 +596,7 @@ class MoodEntryViewModel(private val repository: MoodEntryRepository) : ViewMode
                 BitmapFactory.decodeStream(inputStream)?.copy(Bitmap.Config.ARGB_8888, true)
             }
         }
-    }
+    }*/
 
     //sentiment analysis (note)
     private var _sentimentResult = mutableStateOf("")
