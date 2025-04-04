@@ -56,9 +56,10 @@ fun EducationalLibraryPage(eduViewModel: EduContentViewModel, onNavigate: (Strin
     }
 
     val searchText = remember { mutableStateOf("") }
+    val query = searchText.value.trim().lowercase()
     val filteredItems = contentList.filter {
-        it.contentTitle.contains(searchText.value, ignoreCase = true) ||
-                it.contentDescription.contains(searchText.value, ignoreCase = true)
+        it.contentTitle.lowercase().contains(query) ||
+                it.contentDescription.lowercase().contains(query)
     }
 
     Box {
