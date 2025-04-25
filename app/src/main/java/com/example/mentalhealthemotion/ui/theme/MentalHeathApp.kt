@@ -25,9 +25,14 @@ import com.example.mentalhealthemotion.Data.AppDatabase
 import com.example.mentalhealthemotion.R
 import android.content.Context
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import com.example.mentalhealthemotion.Data.CommunityRepository
+import com.example.mentalhealthemotion.Data.CommunityViewModel
+import com.example.mentalhealthemotion.Data.CommunityViewModelFactory
 import com.example.mentalhealthemotion.Data.EduContentRepository
 import com.example.mentalhealthemotion.Data.EduContentViewModel
 import com.example.mentalhealthemotion.Data.EduContentViewModelFactory
@@ -62,7 +67,11 @@ enum class MentalHeathAppScreen {
     EduLibraryPage,
     AdminHomePage,
     AdminManageEduPage,
-    AdminManageUserPage
+    AdminManageUserPage,
+    AdminManageDASS21Page,
+    AdminManagePHQ9Page,
+    MainScreen,
+    AdminManageCommunityPage
 }
 
 
@@ -125,6 +134,12 @@ fun MentalHeathApp(
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route ?: MentalHeathAppScreen.GetStarted.name
 
+    val repository = CommunityRepository()
+    val communityViewModel: CommunityViewModel = ViewModelProvider(
+        LocalContext.current as ViewModelStoreOwner,
+        CommunityViewModelFactory(repository)
+    ).get(CommunityViewModel::class.java)
+
 
     // Define pages where the AppBar should be shown
     val showAppBarScreens = setOf(
@@ -137,7 +152,8 @@ fun MentalHeathApp(
         MentalHeathAppScreen.HistoryPage.name,
         MentalHeathAppScreen.MusicStartPage.name,
         MentalHeathAppScreen.MusicPage.name,
-        MentalHeathAppScreen.EduLibraryPage.name
+        MentalHeathAppScreen.EduLibraryPage.name,
+        MentalHeathAppScreen.MainScreen.name
     )
 
     Scaffold(
@@ -201,7 +217,7 @@ fun MentalHeathApp(
             composable(route = MentalHeathAppScreen.HomePage.name) {
                 HomePage(
                     onEmotionClick = { navController.navigate(MentalHeathAppScreen.MoodTrackerPage.name)},
-                    onMentalClick = { }
+                    onMentalClick = { navController.navigate(MentalHeathAppScreen.MainScreen.name)}
                 )
             }
 
@@ -214,6 +230,12 @@ fun MentalHeathApp(
                     onNavigate = { route -> navController.navigate(route) }
                 )
             }
+
+            //MoodTrackerPage
+            composable(route = MentalHeathAppScreen.MainScreen.name) {
+                MainScreen()
+            }
+
 
             //Mood Entry Page
             composable(
@@ -344,6 +366,18 @@ fun MentalHeathApp(
                     eduViewModel,
                     backClick = { navController.navigate(MentalHeathAppScreen.AdminHomePage.name) }
                 )
+            }
+
+            composable(route = MentalHeathAppScreen.AdminManagePHQ9Page.name) {
+                AdminManagePHQ9Page()
+            }
+
+            composable(route = MentalHeathAppScreen.AdminManageDASS21Page.name) {
+                AdminManageDASS21Page()
+            }
+
+            composable(route = MentalHeathAppScreen.AdminManageCommunityPage.name) {
+                AdminManageCommunityPage(communityViewModel = communityViewModel)
             }
         }
     }
